@@ -8,241 +8,6 @@ const { cloudinary } = require('../config/cloudinary');
 
 
 
-
-
-
-// @desc    Create new product - MODIFIED to accept JSON with image URLs
-// @route   POST /api/products
-// @access  Private (Moderator/Admin)
-// controllers/productController.js
-
-// const createProduct = async (req, res) => {
-//   try {
-//     console.log('Create product request received');
-//     console.log('Body:', req.body);
-
-//     const {
-//       productName,
-//       description,
-//       instruction,
-//       category,
-//        subcategory,
-//       targetedCustomer,
-//       fabric,
-//       moq,
-//       pricePerUnit,
-//       quantityBasedPricing,
-//       sizes,
-//       colors,
-//       additionalInfo,
-//       isFeatured,
-//       tags,
-//       metaSettings,
-//       images // This is now an array of image URLs from Cloudinary
-//     } = req.body;
-
-//     console.log('Images received:', images);
-//     console.log('Images array length:', images?.length);
-
-//     // Validation
-//     if (!productName) {
-//       return res.status(400).json({
-//         success: false,
-//         error: 'Product name is required'
-//       });
-//     }
-
-//     if (!category) {
-//       return res.status(400).json({
-//         success: false,
-//         error: 'Category is required'
-//       });
-//     }
-
-//     // Check if category exists
-//     const categoryExists = await Category.findById(category);
-//     if (!categoryExists) {
-//       return res.status(400).json({
-//         success: false,
-//         error: 'Invalid category'
-//       });
-//     }
-
-//     // CRITICAL: Check if at least one image URL is provided
-//     if (!images || !Array.isArray(images) || images.length === 0) {
-//       console.log('No images provided. Images:', images);
-//       return res.status(400).json({
-//         success: false,
-//         error: 'At least one product image is required'
-//       });
-//     }
-
-//     // Validate image URLs
-//     if (!Array.isArray(images) || images.some(img => typeof img !== 'string')) {
-//       return res.status(400).json({
-//         success: false,
-//         error: 'Images must be an array of valid URLs'
-//       });
-//     }
-
-//     // Parse JSON fields (if they come as strings)
-//     let parsedQuantityPricing = [];
-//     let parsedSizes = [];
-//     let parsedColors = [];
-//     let parsedAdditionalInfo = [];
-//     let parsedTags = [];
-//     let parsedMetaSettings = {};
-
-//     try {
-//       parsedQuantityPricing = typeof quantityBasedPricing === 'string' 
-//         ? JSON.parse(quantityBasedPricing) 
-//         : quantityBasedPricing || [];
-      
-//       parsedSizes = typeof sizes === 'string' 
-//         ? JSON.parse(sizes) 
-//         : sizes || [];
-      
-//       parsedColors = typeof colors === 'string' 
-//         ? JSON.parse(colors) 
-//         : colors || [];
-      
-//       if (additionalInfo) {
-//         parsedAdditionalInfo = typeof additionalInfo === 'string' 
-//           ? JSON.parse(additionalInfo) 
-//           : additionalInfo;
-//       }
-
-//       if (tags) {
-//         parsedTags = typeof tags === 'string' 
-//           ? JSON.parse(tags) 
-//           : tags || [];
-//       }
-
-//       if (metaSettings) {
-//         parsedMetaSettings = typeof metaSettings === 'string' 
-//           ? JSON.parse(metaSettings) 
-//           : metaSettings || {};
-//       }
-//     } catch (error) {
-//       console.error('Error parsing JSON fields:', error);
-//       return res.status(400).json({
-//         success: false,
-//         error: 'Invalid data format for sizes, colors, pricing, tags, or meta settings'
-//       });
-//     }
-
-//     // Validate sizes
-//     if (!parsedSizes || parsedSizes.length === 0) {
-//       return res.status(400).json({
-//         success: false,
-//         error: 'At least one size is required'
-//       });
-//     }
-
-//     // Validate colors
-//     if (!parsedColors || parsedColors.length === 0) {
-//       return res.status(400).json({
-//         success: false,
-//         error: 'At least one color is required'
-//       });
-//     }
-
-//     // Process images - Convert URLs to the format expected by the schema
-//     const processedImages = images.map((url, index) => ({
-//       url: url,
-//       publicId: extractPublicIdFromUrl(url),
-//       isPrimary: index === 0
-//     }));
-
-//     console.log('Processed images:', processedImages);
-
-//     // Create product with all fields
-//     const product = await Product.create({
-//       productName,
-//       description: description || '',
-//       instruction: instruction || '',
-//       category,
-//        subcategory: subcategory || null,
-//        subcategoryName: subcategory ? await getSubcategoryName(category, subcategory) : '', 
-//       targetedCustomer: targetedCustomer || 'unisex',
-//       fabric,
-//       moq: parseInt(moq) || 100,
-//       pricePerUnit: parseFloat(pricePerUnit) || 0,
-//       quantityBasedPricing: parsedQuantityPricing,
-//       sizes: parsedSizes,
-//       colors: parsedColors,
-//       additionalInfo: parsedAdditionalInfo,
-//       isFeatured: isFeatured === true || isFeatured === 'true',
-//       tags: parsedTags,
-//       metaSettings: parsedMetaSettings,
-//       images: processedImages,
-//       createdBy: req.user.id,
-//       isActive: true
-//     });
-
-//     // Helper function to get subcategory name
-// async function getSubcategoryName(categoryId, subcategoryId) {
-//   const category = await Category.findById(categoryId);
-//   if (!category) return '';
-//   const subcategory = category.subcategories.id(subcategoryId);
-//   return subcategory ? subcategory.name : '';
-// }
-
-//     // Prepare embedded product data for category
-//     const embeddedProduct = {
-//       productId: product._id,
-//       productName: product.productName,
-//       slug: product.slug,
-//       description: product.description,
-//       instruction: product.instruction,
-//       targetedCustomer: product.targetedCustomer,
-//       fabric: product.fabric,
-//       images: product.images,
-//       sizes: product.sizes,
-//       colors: product.colors,
-//       moq: product.moq,
-//       pricePerUnit: product.pricePerUnit,
-//       quantityBasedPricing: product.quantityBasedPricing,
-//       additionalInfo: product.additionalInfo,
-//       isFeatured: product.isFeatured,
-//       tags: product.tags,
-//        subcategoryId: product.subcategory, // NEW
-//   subcategoryName: product.subcategoryName, // NEW
-//       isActive: product.isActive,
-//       createdBy: product.createdBy,
-//       createdAt: product.createdAt
-//     };
-
-//     // Add product to category's products array
-//     await Category.findByIdAndUpdate(
-//       category,
-//       {
-//         $push: { products: embeddedProduct },
-//         $inc: { productCount: 1 }
-//       },
-//       { new: true }
-//     );
-
-//     // Populate references for response
-//     await product.populate([
-//       { path: 'category', select: 'name slug' },
-//       { path: 'createdBy', select: 'contactPerson email role' }
-//     ]);
-
-//     res.status(201).json({
-//       success: true,
-//       data: product,
-//       message: 'Product created successfully'
-//     });
-//   } catch (error) {
-//     console.error('Create product error:', error);
-//     res.status(500).json({
-//       success: false,
-//       error: error.message || 'Server error while creating product'
-//     });
-//   }
-// };
-
 // @desc    Create new product - WITH SUBCATEGORY SUPPORT
 // @route   POST /api/products
 // @access  Private (Moderator/Admin)
@@ -260,12 +25,16 @@ const createProduct = async (req, res) => {
       childSubcategory,
       targetedCustomer,
       fabric,
+       orderUnit,        // ← Changed from orderType
+  weightPerUnit,  
       moq,
       pricePerUnit,
       quantityBasedPricing,
       sizes,
+       
       colors,
       additionalInfo,
+      customizationOptions,
       isFeatured,
       tags,
       metaSettings,
@@ -361,6 +130,7 @@ let childSubcategoryDoc = null;
     let parsedAdditionalInfo = [];
     let parsedTags = [];
     let parsedMetaSettings = {};
+    let parsedCustomizationOptions = []; 
 
     try {
       parsedQuantityPricing = typeof quantityBasedPricing === 'string' 
@@ -392,6 +162,12 @@ let childSubcategoryDoc = null;
           ? JSON.parse(metaSettings) 
           : metaSettings || {};
       }
+
+          if (customizationOptions) {
+        parsedCustomizationOptions = typeof customizationOptions === 'string' 
+          ? JSON.parse(customizationOptions) 
+          : customizationOptions || [];
+      }
     } catch (error) {
       console.error('Error parsing JSON fields:', error);
       return res.status(400).json({
@@ -401,12 +177,18 @@ let childSubcategoryDoc = null;
     }
 
     // Validate sizes
-    if (!parsedSizes || parsedSizes.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'At least one size is required'
-      });
-    }
+   // Validate sizes - Now optional, only validate if sizes are provided
+if (parsedSizes && parsedSizes.length > 0) {
+  // Optional: Add validation for size values if needed
+  const validSizes = parsedSizes.filter(s => s && s.trim());
+  if (validSizes.length === 0 && parsedSizes.length > 0) {
+    return res.status(400).json({
+      success: false,
+      error: 'Invalid size values provided'
+    });
+  }
+}
+// Sizes are now optional - no error if empty
 
     // Validate colors
     if (!parsedColors || parsedColors.length === 0) {
@@ -470,12 +252,15 @@ let childSubcategoryDoc = null;
   childSubcategoryName: childSubcategoryName, // NEW
       targetedCustomer: targetedCustomer || 'unisex',
       fabric,
+        orderUnit: orderUnit || 'piece',        // ← Changed from orderType
+  weightPerUnit: weightPerUnit ? parseFloat(weightPerUnit) : null, 
       moq: parseInt(moq) || 100,
       pricePerUnit: parseFloat(pricePerUnit) || 0,
       quantityBasedPricing: parsedQuantityPricing,
       sizes: parsedSizes,
       colors: parsedColors,
       additionalInfo: parsedAdditionalInfo,
+       customizationOptions: parsedCustomizationOptions, 
       isFeatured: isFeatured === true || isFeatured === 'true',
       tags: parsedTags,
       metaSettings: parsedMetaSettings,
