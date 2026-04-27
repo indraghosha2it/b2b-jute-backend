@@ -851,7 +851,7 @@ const clearCart = async (req, res) => {
 //       });
 //     }
 
-//     // DEBUG: Log cart structure
+//     // DEBUG: Log cart structure to see what's in the cart
 //     console.log('🛒 CART STRUCTURE:', JSON.stringify({
 //       items: cart.items.map(item => ({
 //         productId: item.productId,
@@ -860,6 +860,8 @@ const clearCart = async (req, res) => {
 //         colors: item.colors?.map(c => ({
 //           color: c.color,
 //           totalForColor: c.totalForColor,
+//           totalQuantity: c.totalQuantity,
+//           unitPrice: c.unitPrice,
 //           sizeQuantities: c.sizeQuantities
 //         }))
 //       }))
@@ -880,23 +882,31 @@ const clearCart = async (req, res) => {
 
 //     console.log('🔍 User email for notifications:', userDetails.email);
 
-//     // CRITICAL FIX: Map cart items to inquiry items preserving structure
+//     // CRITICAL FIX: Map cart items to inquiry items PRESERVING unitPrice and totalQuantity
 //     const inquiryItems = cart.items.map(cartItem => {
-//       // Ensure colors array exists and has data
-//       const colors = (cartItem.colors || []).map(color => ({
-//         color: {
-//           code: color.color?.code || '#CCCCCC',
-//           name: color.color?.name || color.color?.code || 'Unknown Color'
-//         },
-//         sizeQuantities: (color.sizeQuantities || [])
-//           .filter(sq => sq.quantity > 0) // Only include non-zero quantities
-//           .map(sq => ({
-//             size: sq.size,
-//             quantity: sq.quantity
-//           })),
-//         totalForColor: color.totalForColor || 0,
-//         specialInstructions: color.specialInstructions || ''
-//       })).filter(color => color.sizeQuantities.length > 0); // Only include colors with quantities
+//       // Ensure colors array exists and has data - PRESERVE ALL FIELDS
+//       const colors = (cartItem.colors || []).map(color => {
+//         // Calculate total for this color from sizeQuantities if not already set
+//         const colorTotal = color.totalForColor || 
+//           color.totalQuantity ||
+//           (color.sizeQuantities || []).reduce((sum, sq) => sum + (sq.quantity || 0), 0);
+        
+//         return {
+//           color: {
+//             code: color.color?.code || '#CCCCCC',
+//             name: color.color?.name || color.color?.code || 'Unknown Color'
+//           },
+//           sizeQuantities: (color.sizeQuantities || [])
+//             .filter(sq => sq.quantity > 0) // Only include non-zero quantities
+//             .map(sq => ({
+//               size: sq.size,
+//               quantity: sq.quantity
+//             })),
+//           totalForColor: colorTotal,
+//           totalQuantity: colorTotal,  // ← PRESERVE totalQuantity
+//           unitPrice: color.unitPrice || 0  // ← PRESERVE unitPrice (CRITICAL!)
+//         };
+//       }).filter(color => color.sizeQuantities.length > 0); // Only include colors with quantities
 
 //       return {
 //         productId: cartItem.productId,
@@ -910,21 +920,37 @@ const clearCart = async (req, res) => {
 //       };
 //     }).filter(item => item.colors.length > 0); // Only include items with colors
 
-//     console.log('📦 INQUIRY ITEMS TO SAVE:', JSON.stringify({
+//     console.log('📦 INQUIRY ITEMS WITH PER-COLOR PRICING:', JSON.stringify({
 //       items: inquiryItems.map(item => ({
 //         productName: item.productName,
 //         colorsCount: item.colors.length,
 //         colors: item.colors.map(c => ({
 //           color: c.color.code,
 //           totalForColor: c.totalForColor,
+//           totalQuantity: c.totalQuantity,
+//           unitPrice: c.unitPrice,  // ← Now showing unitPrice
 //           sizeCount: c.sizeQuantities.length
 //         }))
 //       }))
 //     }, null, 2));
 
-//     // Calculate totals
+//     // Calculate totals using PER-COLOR pricing (not product unitPrice)
 //     const totalQuantity = inquiryItems.reduce((sum, item) => sum + item.totalQuantity, 0);
-//     const subtotal = inquiryItems.reduce((sum, item) => sum + (item.totalQuantity * item.unitPrice), 0);
+    
+//     // CRITICAL: Calculate subtotal based on each color's quantity × its unit price
+//     const subtotal = inquiryItems.reduce((total, item) => {
+//       const itemTotal = item.colors.reduce((sum, color) => {
+//         const colorQty = color.totalQuantity || color.totalForColor || 0;
+//         const colorPrice = color.unitPrice || 0;
+//         const colorSubtotal = colorQty * colorPrice;
+//         console.log(`   Color ${color.color.code}: ${colorQty} × ${colorPrice} = ${colorSubtotal}`);
+//         return sum + colorSubtotal;
+//       }, 0);
+//       return total + itemTotal;
+//     }, 0);
+
+//     console.log(`📊 Total Quantity: ${totalQuantity}`);
+//     console.log(`💰 Calculated Subtotal (per-color pricing): ${subtotal}`);
 
 //     // Create inquiry
 //     const inquiry = new Inquiry({
@@ -935,7 +961,7 @@ const clearCart = async (req, res) => {
 //       attachments: attachments || [],
 //       totalItems: inquiryItems.length,
 //       totalQuantity: totalQuantity,
-//       subtotal: subtotal,
+//       subtotal: subtotal,  // ← Now using per-color calculated total
 //       status: 'submitted'
 //     });
 
@@ -944,30 +970,32 @@ const clearCart = async (req, res) => {
 //     console.log('✅ Inquiry created successfully:', inquiry.inquiryNumber);
 //     console.log('💾 SAVED INQUIRY:', JSON.stringify({
 //       inquiryNumber: inquiry.inquiryNumber,
+//       subtotal: inquiry.subtotal,
 //       items: inquiry.items.map(item => ({
 //         productName: item.productName,
 //         colorsCount: item.colors.length,
 //         colors: item.colors.map(c => ({
 //           color: c.color.code,
-//           totalForColor: c.totalForColor
+//           totalForColor: c.totalForColor,
+//           totalQuantity: c.totalQuantity,
+//           unitPrice: c.unitPrice  // ← Verify this is saved
 //         }))
 //       }))
 //     }, null, 2));
 
-//     // Clear the cart
+//     // Clear the cart after successful submission
 //     cart.items = [];
+//     cart.totalItems = 0;
+//     cart.totalQuantity = 0;
+//     cart.estimatedTotal = 0;
 //     await cart.save();
 
 //     // --- EMAIL NOTIFICATIONS ---
 //     try {
 //       console.log('📧 SENDING EMAILS NOW...');
-      
-//       // Import the email service (if not already imported at top)
 //       const { sendInquirySubmissionEmails } = require('../utils/emailService');
-      
 //       const emailResult = await sendInquirySubmissionEmails(inquiry, userDetails);
 //       console.log('📧 Email result:', emailResult);
-      
 //     } catch (emailError) {
 //       console.error('❌ Email sending error:', emailError.message);
 //     }
@@ -992,10 +1020,8 @@ const clearCart = async (req, res) => {
 //   }
 // };
 
-// @desc    Upload attachment for inquiry
-// @route   POST /api/inquiry-cart/upload
-// @access  Private
 
+// In your inquiryCartController.js - UPDATED submitInquiry function
 const submitInquiry = async (req, res) => {
   try {
     const { specialInstructions, attachments } = req.body;
@@ -1011,23 +1037,10 @@ const submitInquiry = async (req, res) => {
       });
     }
 
-    // DEBUG: Log cart structure to see what's in the cart
-    console.log('🛒 CART STRUCTURE:', JSON.stringify({
-      items: cart.items.map(item => ({
-        productId: item.productId,
-        productName: item.productName,
-        colorsCount: item.colors?.length || 0,
-        colors: item.colors?.map(c => ({
-          color: c.color,
-          totalForColor: c.totalForColor,
-          totalQuantity: c.totalQuantity,
-          unitPrice: c.unitPrice,
-          sizeQuantities: c.sizeQuantities
-        }))
-      }))
-    }, null, 2));
+    // DEBUG: Log cart data to see what's there
+    console.log('🛒 CART DATA:', JSON.stringify(cart, null, 2));
 
-    // Get user details
+    // Get user details from req.user
     const userDetails = {
       companyName: req.user.companyName || '',
       contactPerson: req.user.contactPerson || '',
@@ -1040,68 +1053,48 @@ const submitInquiry = async (req, res) => {
       zipCode: req.user.zipCode || ''
     };
 
-    console.log('🔍 User email for notifications:', userDetails.email);
-
-    // CRITICAL FIX: Map cart items to inquiry items PRESERVING unitPrice and totalQuantity
+    // IMPORTANT: Preserve ALL fields from cart, especially unitPrice and totalQuantity
     const inquiryItems = cart.items.map(cartItem => {
-      // Ensure colors array exists and has data - PRESERVE ALL FIELDS
-      const colors = (cartItem.colors || []).map(color => {
-        // Calculate total for this color from sizeQuantities if not already set
-        const colorTotal = color.totalForColor || 
-          color.totalQuantity ||
-          (color.sizeQuantities || []).reduce((sum, sq) => sum + (sq.quantity || 0), 0);
-        
-        return {
+      console.log(`📦 Processing product: ${cartItem.productName}`);
+      console.log(`   Cart item colors:`, JSON.stringify(cartItem.colors, null, 2));
+      
+      return {
+        productId: cartItem.productId,
+        productName: cartItem.productName,
+        colors: cartItem.colors.map(color => ({
           color: {
             code: color.color?.code || '#CCCCCC',
             name: color.color?.name || color.color?.code || 'Unknown Color'
           },
           sizeQuantities: (color.sizeQuantities || [])
-            .filter(sq => sq.quantity > 0) // Only include non-zero quantities
+            .filter(sq => sq.quantity > 0)
             .map(sq => ({
               size: sq.size,
               quantity: sq.quantity
             })),
-          totalForColor: colorTotal,
-          totalQuantity: colorTotal,  // ← PRESERVE totalQuantity
-          unitPrice: color.unitPrice || 0  // ← PRESERVE unitPrice (CRITICAL!)
-        };
-      }).filter(color => color.sizeQuantities.length > 0); // Only include colors with quantities
-
-      return {
-        productId: cartItem.productId,
-        productName: cartItem.productName,
-        colors: colors,
+          totalForColor: color.totalQuantity || color.totalForColor || 0,
+          totalQuantity: color.totalQuantity || color.totalForColor || 0,
+          unitPrice: color.unitPrice || 0,
+          // For weight-based products
+          quantity: color.quantity || 0
+        })),
         totalQuantity: cartItem.totalQuantity || 0,
         unitPrice: cartItem.unitPrice || 0,
         moq: cartItem.moq || 0,
         productImage: cartItem.productImage || '',
-        specialInstructions: cartItem.specialInstructions || ''
+        specialInstructions: cartItem.specialInstructions || '',
+        orderUnit: cartItem.orderUnit || 'piece'  // IMPORTANT: Preserve order unit
       };
-    }).filter(item => item.colors.length > 0); // Only include items with colors
+    });
 
-    console.log('📦 INQUIRY ITEMS WITH PER-COLOR PRICING:', JSON.stringify({
-      items: inquiryItems.map(item => ({
-        productName: item.productName,
-        colorsCount: item.colors.length,
-        colors: item.colors.map(c => ({
-          color: c.color.code,
-          totalForColor: c.totalForColor,
-          totalQuantity: c.totalQuantity,
-          unitPrice: c.unitPrice,  // ← Now showing unitPrice
-          sizeCount: c.sizeQuantities.length
-        }))
-      }))
-    }, null, 2));
-
-    // Calculate totals using PER-COLOR pricing (not product unitPrice)
-    const totalQuantity = inquiryItems.reduce((sum, item) => sum + item.totalQuantity, 0);
+    // Calculate totals using per-color pricing
+    const totalQuantity = inquiryItems.reduce((sum, item) => sum + (item.totalQuantity || 0), 0);
     
-    // CRITICAL: Calculate subtotal based on each color's quantity × its unit price
+    // Calculate subtotal based on per-color pricing
     const subtotal = inquiryItems.reduce((total, item) => {
       const itemTotal = item.colors.reduce((sum, color) => {
-        const colorQty = color.totalQuantity || color.totalForColor || 0;
-        const colorPrice = color.unitPrice || 0;
+        let colorQty = color.totalQuantity || color.totalForColor || color.quantity || 0;
+        let colorPrice = color.unitPrice || 0;
         const colorSubtotal = colorQty * colorPrice;
         console.log(`   Color ${color.color.code}: ${colorQty} × ${colorPrice} = ${colorSubtotal}`);
         return sum + colorSubtotal;
@@ -1109,8 +1102,9 @@ const submitInquiry = async (req, res) => {
       return total + itemTotal;
     }, 0);
 
-    console.log(`📊 Total Quantity: ${totalQuantity}`);
-    console.log(`💰 Calculated Subtotal (per-color pricing): ${subtotal}`);
+    console.log(`📦 Creating inquiry with ${inquiryItems.length} products`);
+    console.log(`💰 Total quantity: ${totalQuantity}`);
+    console.log(`💰 Calculated subtotal using per-color pricing: ${subtotal}`);
 
     // Create inquiry
     const inquiry = new Inquiry({
@@ -1121,26 +1115,18 @@ const submitInquiry = async (req, res) => {
       attachments: attachments || [],
       totalItems: inquiryItems.length,
       totalQuantity: totalQuantity,
-      subtotal: subtotal,  // ← Now using per-color calculated total
+      subtotal: subtotal,
       status: 'submitted'
     });
 
     await inquiry.save();
 
     console.log('✅ Inquiry created successfully:', inquiry.inquiryNumber);
-    console.log('💾 SAVED INQUIRY:', JSON.stringify({
+    console.log('💾 Saved inquiry:', JSON.stringify({
       inquiryNumber: inquiry.inquiryNumber,
-      subtotal: inquiry.subtotal,
-      items: inquiry.items.map(item => ({
-        productName: item.productName,
-        colorsCount: item.colors.length,
-        colors: item.colors.map(c => ({
-          color: c.color.code,
-          totalForColor: c.totalForColor,
-          totalQuantity: c.totalQuantity,
-          unitPrice: c.unitPrice  // ← Verify this is saved
-        }))
-      }))
+      itemsCount: inquiry.items.length,
+      totalQuantity: inquiry.totalQuantity,
+      subtotal: inquiry.subtotal
     }, null, 2));
 
     // Clear the cart after successful submission
@@ -1149,17 +1135,6 @@ const submitInquiry = async (req, res) => {
     cart.totalQuantity = 0;
     cart.estimatedTotal = 0;
     await cart.save();
-
-    // --- EMAIL NOTIFICATIONS ---
-    try {
-      console.log('📧 SENDING EMAILS NOW...');
-      const { sendInquirySubmissionEmails } = require('../utils/emailService');
-      const emailResult = await sendInquirySubmissionEmails(inquiry, userDetails);
-      console.log('📧 Email result:', emailResult);
-    } catch (emailError) {
-      console.error('❌ Email sending error:', emailError.message);
-    }
-    // --- END EMAIL NOTIFICATIONS ---
 
     res.status(201).json({
       success: true,
@@ -1170,7 +1145,6 @@ const submitInquiry = async (req, res) => {
       },
       message: 'Inquiry submitted successfully'
     });
-
   } catch (error) {
     console.error('❌ Submit inquiry error:', error);
     res.status(500).json({
@@ -1179,6 +1153,7 @@ const submitInquiry = async (req, res) => {
     });
   }
 };
+
 
 const uploadAttachment = async (req, res) => {
   try {
@@ -1213,131 +1188,7 @@ const uploadAttachment = async (req, res) => {
   }
 };
 
-// @desc    Remove a specific color from a cart item
-// @route   DELETE /api/inquiry-cart/item/:itemId/color/:colorIndex
-// @access  Private
-// const removeColorFromItem = async (req, res) => {
-//   try {
-//     const { itemId, colorIndex } = req.params;
-//     const index = parseInt(colorIndex);
 
-//     const cart = await InquiryCart.findOne({ userId: req.user.id });
-//     if (!cart) {
-//       return res.status(404).json({
-//         success: false,
-//         error: 'Cart not found'
-//       });
-//     }
-
-//     // Find the item
-//     const itemIndex = cart.items.findIndex(item => item._id.toString() === itemId);
-//     if (itemIndex === -1) {
-//       return res.status(404).json({
-//         success: false,
-//         error: 'Item not found in cart'
-//       });
-//     }
-
-//     const item = cart.items[itemIndex];
-    
-//     // Check if color index is valid
-//     if (!item.colors || index < 0 || index >= item.colors.length) {
-//       return res.status(400).json({
-//         success: false,
-//         error: 'Invalid color index'
-//       });
-//     }
-
-//     // Remove the color at the specified index
-//     const removedColor = item.colors[index];
-//     item.colors.splice(index, 1);
-
-//     // Calculate total quantity for this item from remaining colors
-//     let newTotalQuantity = 0;
-//     if (item.colors.length > 0) {
-//       newTotalQuantity = item.colors.reduce((sum, color) => {
-//         // Calculate total for this color from its sizeQuantities
-//         const colorTotal = color.sizeQuantities.reduce(
-//           (colorSum, sq) => colorSum + (sq.quantity || 0), 
-//           0
-//         );
-//         return sum + colorTotal;
-//       }, 0);
-      
-//       // Update each color's totalForColor field
-//       item.colors.forEach(color => {
-//         color.totalForColor = color.sizeQuantities.reduce(
-//           (sum, sq) => sum + (sq.quantity || 0), 
-//           0
-//         );
-//         color.totalQuantity = color.totalForColor;
-//       });
-//     }
-
-//     // Update item total quantity
-//     item.totalQuantity = newTotalQuantity;
-
-//     // Get product details to check bulk pricing
-//     const product = await Product.findById(item.productId);
-    
-//     // Recalculate unit price based on new total quantity and bulk pricing tiers
-//     if (product && product.quantityBasedPricing && product.quantityBasedPricing.length > 0 && newTotalQuantity > 0) {
-//       const sortedTiers = [...product.quantityBasedPricing].sort((a, b) => {
-//         const aMin = parseInt(a.range.split('-')[0] || a.range.replace('+', ''));
-//         const bMin = parseInt(b.range.split('-')[0] || b.range.replace('+', ''));
-//         return aMin - bMin;
-//       });
-      
-//       // Find the applicable tier based on newTotalQuantity
-//       for (const tier of sortedTiers) {
-//         const range = tier.range;
-//         if (range.includes('-')) {
-//           const [min, max] = range.split('-').map(Number);
-//           if (newTotalQuantity >= min && newTotalQuantity <= max) {
-//             item.unitPrice = tier.price;
-//             break;
-//           }
-//         } else if (range.includes('+')) {
-//           const minQty = parseInt(range.replace('+', ''));
-//           if (newTotalQuantity >= minQty) {
-//             item.unitPrice = tier.price;
-//             break;
-//           }
-//         }
-//       }
-//     }
-
-//     // If no colors left, remove the entire item
-//     if (item.colors.length === 0) {
-//       cart.items.splice(itemIndex, 1);
-//     }
-
-//     // Recalculate cart totals
-//     cart.totalItems = cart.items.length;
-//     cart.totalQuantity = cart.items.reduce((sum, item) => sum + (item.totalQuantity || 0), 0);
-//     cart.estimatedTotal = cart.items.reduce((sum, item) => {
-//       return sum + (item.totalQuantity * item.unitPrice);
-//     }, 0);
-
-//     await cart.save();
-
-//     console.log(`🗑️ Removed color ${removedColor.color?.code} from item ${itemId}`);
-//     console.log(`📊 New total quantity: ${newTotalQuantity}`);
-//     console.log(`💰 New unit price: ${item.unitPrice}`);
-
-//     res.json({
-//       success: true,
-//       data: cart,
-//       message: 'Color removed successfully'
-//     });
-//   } catch (error) {
-//     console.error('❌ Remove color error:', error);
-//     res.status(500).json({
-//       success: false,
-//       error: error.message || 'Error removing color'
-//     });
-//   }
-// };
 
 // @desc    Remove a specific color from a cart item
 // @route   DELETE /api/inquiry-cart/item/:itemId/color/:colorIndex

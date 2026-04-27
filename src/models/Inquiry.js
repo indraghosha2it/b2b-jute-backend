@@ -35,6 +35,10 @@ const colorDetailSchema = new mongoose.Schema({
     name: String
   },
   sizeQuantities: [sizeQuantitySchema],
+   quantity: {
+    type: Number,
+    default: 0
+  },
   totalForColor: {
     type: Number,
     default: 0
@@ -64,6 +68,11 @@ const productItemSchema = new mongoose.Schema({
   productName: {
     type: String,
     required: true
+  },
+   orderUnit: {  // ← ADD THIS FIELD
+    type: String,
+    enum: ['piece', 'kg', 'ton'],
+    default: 'piece'
   },
   colors: [colorDetailSchema],
   totalQuantity: {
