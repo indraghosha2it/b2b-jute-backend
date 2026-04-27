@@ -37,7 +37,6 @@ const getCart = async (req, res) => {
 
 
 
-// @desc    Add item to cart (groups all colors under one product)
 // @route   POST /api/inquiry-cart/add
 // @access  Private  before color based quantity
 // const addToCart = async (req, res) => {
@@ -265,13 +264,245 @@ const getCart = async (req, res) => {
 // @desc    Add item to cart (groups all colors under one product)
 // @route   POST /api/inquiry-cart/add
 // @access  Private
+// const addToCart = async (req, res) => {
+//   try {
+//     const { productId, productName, colors, unitPrice, moq, productImage, specialInstructions } = req.body;
+
+//     console.log('📦 Add to cart request received:', { 
+//       userId: req.user.id, 
+//       productId, 
+//       colorsCount: colors?.length,
+//     });
+
+//     // Get product details
+//     const product = await Product.findById(productId);
+//     if (!product) {
+//       return res.status(404).json({
+//         success: false,
+//         error: 'Product not found'
+//       });
+//     }
+
+//     // Validate colors array
+//     if (!colors || !Array.isArray(colors) || colors.length === 0) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'At least one color with quantities is required'
+//       });
+//     }
+
+//     // Find or create cart
+//     let cart = await InquiryCart.findOne({ userId: req.user.id });
+//     if (!cart) {
+//       cart = new InquiryCart({ userId: req.user.id, items: [] });
+//       console.log('🆕 Created new cart for user');
+//     }
+
+//     // Helper function to get price based on quantity
+//     const getPriceForQuantity = (quantity) => {
+//       if (!product.quantityBasedPricing || product.quantityBasedPricing.length === 0) {
+//         return product.pricePerUnit;
+//       }
+      
+//       const sortedTiers = [...product.quantityBasedPricing].sort((a, b) => {
+//         const aMin = parseInt(a.range.split('-')[0] || a.range.replace('+', ''));
+//         const bMin = parseInt(b.range.split('-')[0] || b.range.replace('+', ''));
+//         return aMin - bMin;
+//       });
+      
+//       for (const tier of sortedTiers) {
+//         const range = tier.range;
+//         if (range.includes('-')) {
+//           const [min, max] = range.split('-').map(Number);
+//           if (quantity >= min && quantity <= max) {
+//             return tier.price;
+//           }
+//         } else if (range.includes('+')) {
+//           const minQty = parseInt(range.replace('+', ''));
+//           if (quantity >= minQty) {
+//             return tier.price;
+//           }
+//         }
+//       }
+      
+//       const highestTier = sortedTiers[sortedTiers.length - 1];
+//       if (highestTier && highestTier.range.includes('-') && quantity > parseInt(highestTier.range.split('-')[1])) {
+//         return highestTier.price;
+//       }
+      
+//       return product.pricePerUnit;
+//     };
+
+//     // Format colors data properly - FIXED: Convert object to array
+//     let formattedColors = [];
+//     let calculatedTotalQuantity = 0;
+    
+//     formattedColors = colors.map(colorItem => {
+//       const colorObj = colorItem.color || {};
+      
+//       // CRITICAL FIX: Convert sizeQuantities from OBJECT to ARRAY
+//       let sizeQuantitiesArray = [];
+      
+//       if (colorItem.sizeQuantities) {
+//         // Check if sizeQuantities is an object (key-value pairs)
+//         if (typeof colorItem.sizeQuantities === 'object' && !Array.isArray(colorItem.sizeQuantities)) {
+//           // Convert object to array
+//           sizeQuantitiesArray = Object.entries(colorItem.sizeQuantities)
+//             .filter(([size, qty]) => size && size.trim() !== '')
+//             .map(([size, qty]) => ({
+//               size: size,
+//               quantity: parseInt(qty) || 0
+//             }));
+//         } 
+//         // If it's already an array
+//         else if (Array.isArray(colorItem.sizeQuantities)) {
+//           sizeQuantitiesArray = colorItem.sizeQuantities.map(sq => ({
+//             size: sq.size || '',
+//             quantity: parseInt(sq.quantity) || 0
+//           }));
+//         }
+//       }
+      
+//       // Filter out entries with zero quantity
+//       sizeQuantitiesArray = sizeQuantitiesArray.filter(sq => sq.quantity > 0);
+      
+//       // Calculate total for this color
+//       const colorTotal = sizeQuantitiesArray.reduce((sum, sq) => sum + (sq.quantity || 0), 0);
+      
+//       // Calculate unit price for this color based on its quantity
+//       const colorUnitPrice = colorItem.unitPrice || getPriceForQuantity(colorTotal);
+      
+//       // Add to overall total
+//       calculatedTotalQuantity += colorTotal;
+
+//       console.log(`🎨 Color ${colorObj.code}: total=${colorTotal}, price=${colorUnitPrice}, sizes:`, sizeQuantitiesArray);
+
+//       return {
+//         color: {
+//           code: colorObj.code || '#CCCCCC',
+//           name: colorObj.name || colorObj.code || 'Unknown Color'
+//         },
+//         sizeQuantities: sizeQuantitiesArray,
+//         totalForColor: colorTotal,
+//         totalQuantity: colorTotal,
+//         unitPrice: colorUnitPrice
+//       };
+//     }).filter(colorItem => colorItem.sizeQuantities.length > 0);
+
+//     console.log('🎨 Formatted colors:', JSON.stringify(formattedColors, null, 2));
+
+//     if (formattedColors.length === 0) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'No valid colors with quantities provided'
+//       });
+//     }
+
+//     // Check if product already exists in cart
+//     const existingItemIndex = cart.items.findIndex(item => 
+//       item.productId.toString() === productId
+//     );
+
+//     if (existingItemIndex > -1) {
+//       // PRODUCT EXISTS - Merge colors
+//       const existingItem = cart.items[existingItemIndex];
+//       const existingColors = existingItem.colors || [];
+      
+//       // Merge colors: update existing or add new
+//       const updatedColors = [...existingColors];
+      
+//       formattedColors.forEach(newColor => {
+//         const existingColorIndex = updatedColors.findIndex(
+//           existingColor => existingColor.color.code === newColor.color.code
+//         );
+        
+//         if (existingColorIndex > -1) {
+//           // Update existing color
+//           updatedColors[existingColorIndex] = newColor;
+//           console.log(`🔄 Updated existing color: ${newColor.color.code}`);
+//         } else {
+//           // Add new color
+//           updatedColors.push(newColor);
+//           console.log(`➕ Added new color: ${newColor.color.code}`);
+//         }
+//       });
+      
+//       existingItem.colors = updatedColors;
+      
+//       // Recalculate total quantity
+//       existingItem.totalQuantity = existingItem.colors.reduce(
+//         (sum, color) => sum + (color.totalForColor || 0), 
+//         0
+//       );
+      
+//       // Keep base unit price for reference
+//       existingItem.unitPrice = product.pricePerUnit;
+      
+//       if (specialInstructions !== undefined) {
+//         existingItem.specialInstructions = specialInstructions;
+//       }
+
+//       cart.markModified(`items.${existingItemIndex}`);
+      
+//     } else {
+//       // NEW PRODUCT
+//       const newItem = {
+//         productId,
+//         productName: product.productName,
+//         colors: formattedColors,
+//         totalQuantity: calculatedTotalQuantity,
+//         unitPrice: product.pricePerUnit,
+//         moq,
+//         productImage: productImage || (product.images && product.images.length > 0 ? product.images[0].url : null),
+//         specialInstructions: specialInstructions || ''
+//       };
+      
+//       cart.items.push(newItem);
+//       console.log('➕ Added new product with', formattedColors.length, 'colors');
+//     }
+
+//     await cart.save();
+    
+//     console.log('✅ Cart saved. Items count:', cart.items.length);
+//     console.log('📊 Cart data:', JSON.stringify(cart, null, 2));
+
+//     res.json({
+//       success: true,
+//       data: cart,
+//       message: existingItemIndex > -1 ? 'Cart updated successfully' : 'Product added to cart'
+//     });
+    
+//   } catch (error) {
+//     console.error('❌ Add to cart error:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: error.message || 'Error adding item to cart'
+//     });
+//   }
+// };
+
+// controllers/inquiryCartController.js - Updated addToCart function
+
+// @desc    Add item to cart (supports both piece-based and weight-based products)
+// @route   POST /api/inquiry-cart/add
+// @access  Private
 const addToCart = async (req, res) => {
   try {
-    const { productId, productName, colors, unitPrice, moq, productImage, specialInstructions } = req.body;
+    const { 
+      productId, 
+      productName, 
+      colors, 
+      unitPrice, 
+      moq, 
+      productImage, 
+      specialInstructions,
+      orderUnit = 'piece'  // Default to 'piece' if not provided
+    } = req.body;
 
     console.log('📦 Add to cart request received:', { 
       userId: req.user.id, 
       productId, 
+      orderUnit,
       colorsCount: colors?.length,
     });
 
@@ -326,49 +557,53 @@ const addToCart = async (req, res) => {
         }
       }
       
-      const highestTier = sortedTiers[sortedTiers.length - 1];
-      if (highestTier && highestTier.range.includes('-') && quantity > parseInt(highestTier.range.split('-')[1])) {
-        return highestTier.price;
-      }
-      
       return product.pricePerUnit;
     };
 
-    // Format colors data properly - FIXED: Convert object to array
+    // Format colors data based on order unit type
     let formattedColors = [];
     let calculatedTotalQuantity = 0;
     
     formattedColors = colors.map(colorItem => {
       const colorObj = colorItem.color || {};
-      
-      // CRITICAL FIX: Convert sizeQuantities from OBJECT to ARRAY
+      let colorTotal = 0;
       let sizeQuantitiesArray = [];
+      let simpleQuantity = 0;
       
-      if (colorItem.sizeQuantities) {
-        // Check if sizeQuantities is an object (key-value pairs)
-        if (typeof colorItem.sizeQuantities === 'object' && !Array.isArray(colorItem.sizeQuantities)) {
-          // Convert object to array
-          sizeQuantitiesArray = Object.entries(colorItem.sizeQuantities)
-            .filter(([size, qty]) => size && size.trim() !== '')
-            .map(([size, qty]) => ({
-              size: size,
-              quantity: parseInt(qty) || 0
-            }));
-        } 
-        // If it's already an array
-        else if (Array.isArray(colorItem.sizeQuantities)) {
-          sizeQuantitiesArray = colorItem.sizeQuantities.map(sq => ({
-            size: sq.size || '',
-            quantity: parseInt(sq.quantity) || 0
-          }));
+      // Check if this is weight-based (kg/ton) or piece-based
+      const isWeightBased = orderUnit === 'kg' || orderUnit === 'ton';
+      
+      if (isWeightBased) {
+        // Weight-based: use simple quantity
+        simpleQuantity = colorItem.totalQuantity || colorItem.quantity || 0;
+        colorTotal = simpleQuantity;
+      } else {
+        // Piece-based: process size quantities
+        if (colorItem.sizeQuantities) {
+          // Handle both object and array formats
+          if (typeof colorItem.sizeQuantities === 'object' && !Array.isArray(colorItem.sizeQuantities)) {
+            // Convert object to array
+            sizeQuantitiesArray = Object.entries(colorItem.sizeQuantities)
+              .filter(([size, qty]) => size && size.trim() !== '' && qty > 0)
+              .map(([size, qty]) => ({
+                size: size,
+                quantity: parseInt(qty) || 0
+              }));
+          } else if (Array.isArray(colorItem.sizeQuantities)) {
+            sizeQuantitiesArray = colorItem.sizeQuantities
+              .filter(sq => sq.size && sq.size.trim() !== '' && sq.quantity > 0)
+              .map(sq => ({
+                size: sq.size,
+                quantity: parseInt(sq.quantity) || 0
+              }));
+          }
         }
+        
+        colorTotal = sizeQuantitiesArray.reduce((sum, sq) => sum + (sq.quantity || 0), 0);
       }
       
-      // Filter out entries with zero quantity
-      sizeQuantitiesArray = sizeQuantitiesArray.filter(sq => sq.quantity > 0);
-      
-      // Calculate total for this color
-      const colorTotal = sizeQuantitiesArray.reduce((sum, sq) => sum + (sq.quantity || 0), 0);
+      // If no quantity, skip this color
+      if (colorTotal === 0) return null;
       
       // Calculate unit price for this color based on its quantity
       const colorUnitPrice = colorItem.unitPrice || getPriceForQuantity(colorTotal);
@@ -376,19 +611,28 @@ const addToCart = async (req, res) => {
       // Add to overall total
       calculatedTotalQuantity += colorTotal;
 
-      console.log(`🎨 Color ${colorObj.code}: total=${colorTotal}, price=${colorUnitPrice}, sizes:`, sizeQuantitiesArray);
+      console.log(`🎨 Color ${colorObj.code}: total=${colorTotal}, price=${colorUnitPrice}, isWeightBased=${isWeightBased}`);
 
-      return {
+      const colorData = {
         color: {
           code: colorObj.code || '#CCCCCC',
           name: colorObj.name || colorObj.code || 'Unknown Color'
         },
-        sizeQuantities: sizeQuantitiesArray,
         totalForColor: colorTotal,
         totalQuantity: colorTotal,
         unitPrice: colorUnitPrice
       };
-    }).filter(colorItem => colorItem.sizeQuantities.length > 0);
+      
+      if (isWeightBased) {
+        colorData.quantity = simpleQuantity;
+        colorData.sizeQuantities = [];
+      } else {
+        colorData.sizeQuantities = sizeQuantitiesArray;
+        colorData.quantity = 0;
+      }
+      
+      return colorData;
+    }).filter(color => color !== null);
 
     console.log('🎨 Formatted colors:', JSON.stringify(formattedColors, null, 2));
 
@@ -429,10 +673,11 @@ const addToCart = async (req, res) => {
       });
       
       existingItem.colors = updatedColors;
+      existingItem.orderUnit = orderUnit;
       
       // Recalculate total quantity
       existingItem.totalQuantity = existingItem.colors.reduce(
-        (sum, color) => sum + (color.totalForColor || 0), 
+        (sum, color) => sum + (color.totalQuantity || 0), 
         0
       );
       
@@ -450,6 +695,7 @@ const addToCart = async (req, res) => {
       const newItem = {
         productId,
         productName: product.productName,
+        orderUnit: orderUnit,
         colors: formattedColors,
         totalQuantity: calculatedTotalQuantity,
         unitPrice: product.pricePerUnit,
@@ -459,13 +705,12 @@ const addToCart = async (req, res) => {
       };
       
       cart.items.push(newItem);
-      console.log('➕ Added new product with', formattedColors.length, 'colors');
+      console.log('➕ Added new product with', formattedColors.length, 'colors, orderUnit:', orderUnit);
     }
 
     await cart.save();
     
     console.log('✅ Cart saved. Items count:', cart.items.length);
-    console.log('📊 Cart data:', JSON.stringify(cart, null, 2));
 
     res.json({
       success: true,
