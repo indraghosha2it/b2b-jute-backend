@@ -200,9 +200,20 @@ if (parsedSizes && parsedSizes.length > 0) {
 
     // Validate tags if provided
     if (parsedTags && parsedTags.length > 0) {
-      const validTags = [
-        'Top Ranking', 'New Arrival', 'Top Deal', 'Best Seller',
-        'Summer Collection', 'Winter Collection', 'Limited Edition', 'Trending'
+      // const validTags = [
+      //   'Top Ranking', 'New Arrival', 'Top Deal', 'Best Seller',
+      //   'Summer Collection', 'Winter Collection', 'Limited Edition', 'Trending'
+      // ];
+
+       const validTags = [
+       'Best Seller',
+  'New Arrival',
+  'Top Deal',
+  'Eco-Friendly',
+  'Hot Export Item',
+  'Customizable',
+  'Premium Quality',
+  'Trending'
       ];
       
       for (const tag of parsedTags) {

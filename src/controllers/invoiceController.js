@@ -1037,6 +1037,42 @@ const updateInvoice = async (req, res) => {
 // @desc    Delete invoice (Admin only)
 // @route   DELETE /api/invoices/:id
 // @access  Private/Admin
+// const deleteInvoice = async (req, res) => {
+//   try {
+//     const invoice = await Invoice.findById(req.params.id);
+
+//     if (!invoice) {
+//       return res.status(404).json({
+//         success: false,
+//         error: 'Invoice not found'
+//       });
+//     }
+
+//     // Don't allow deleting paid invoices
+//     if (invoice.paymentStatus === 'paid') {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'Cannot delete a paid invoice'
+//       });
+//     }
+
+//     await Invoice.findByIdAndDelete(req.params.id);
+
+//     res.json({
+//       success: true,
+//       message: 'Invoice deleted successfully'
+//     });
+//   } catch (error) {
+//     console.error('Delete invoice error:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: error.message || 'Error deleting invoice'
+//     });
+//   }
+// };
+// @desc    Delete invoice (Admin only)
+// @route   DELETE /api/invoices/:id
+// @access  Private/Admin
 const deleteInvoice = async (req, res) => {
   try {
     const invoice = await Invoice.findById(req.params.id);
@@ -1048,13 +1084,8 @@ const deleteInvoice = async (req, res) => {
       });
     }
 
-    // Don't allow deleting paid invoices
-    if (invoice.paymentStatus === 'paid') {
-      return res.status(400).json({
-        success: false,
-        error: 'Cannot delete a paid invoice'
-      });
-    }
+    // Allow deletion of any invoice including paid ones
+    // Removed the paid invoice restriction
 
     await Invoice.findByIdAndDelete(req.params.id);
 
@@ -1070,7 +1101,6 @@ const deleteInvoice = async (req, res) => {
     });
   }
 };
-
 
 // @desc    Update payment status (Admin only)
 // @route   PUT /api/invoices/:id/payment

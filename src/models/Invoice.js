@@ -12,6 +12,10 @@ const invoiceItemColorSchema = new mongoose.Schema({
     size: String,
     quantity: Number
   }],
+   quantity: {  // ← ADD THIS for weight-based products
+    type: Number,
+    default: 0
+  },
   totalForColor: Number,
   unitPrice: {  // ← ADD THIS
     type: Number,
@@ -26,6 +30,11 @@ const invoiceItemSchema = new mongoose.Schema({
     required: true
   },
   productName: String,
+  orderUnit: {  // ← ADD THIS
+    type: String,
+    enum: ['piece', 'kg', 'ton'],
+    default: 'piece'
+  },
   colors: [invoiceItemColorSchema],
   totalQuantity: Number,
   unitPrice: Number,

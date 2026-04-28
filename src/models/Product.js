@@ -197,15 +197,25 @@ pricePerUnit: {
   tags: [{
     type: String,
     enum: {
-      values: [
-        'Top Ranking',
-        'New Arrival',
-        'Top Deal',
+      // values: [
+      //   'Top Ranking',
+      //   'New Arrival',
+      //   'Top Deal',
+      //   'Best Seller',
+      //   'Summer Collection',
+      //   'Winter Collection',
+      //   'Limited Edition',
+      //   'Trending',
+      // ],
+        values: [
         'Best Seller',
-        'Summer Collection',
-        'Winter Collection',
-        'Limited Edition',
-        'Trending',
+  'New Arrival',
+  'Top Deal',
+  'Eco-Friendly',
+  'Hot Export Item',
+  'Customizable',
+  'Premium Quality',
+  'Trending'
       ],
       message: '{VALUE} is not a valid tag'
     }
