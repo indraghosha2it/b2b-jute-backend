@@ -48,18 +48,17 @@ const blogSchema = new mongoose.Schema({
   category: {
     type: String,
     required: [true, 'Category is required'],
-    enum: [
-      'fashion-trends',
-      'wholesale-guide',
-      'industry-news',
-      'style-tips',
-      'business-tips',
-      'fabric-and-quality',
-      'customer-stories',
-      'case-studies',
-      'product-guide',
-      'others'
-    ]
+   enum: [
+    'eco-sustainability',
+    'jute-product-guides',
+    'manufacturing-process',
+    'bulk-buying-export',
+    'jute-industry-trends',
+    'jute-craft-diy',
+    'product-spotlights',
+    'customer-stories',
+    'business-insights'
+  ]
   },
   excerpt: {
     type: String,
