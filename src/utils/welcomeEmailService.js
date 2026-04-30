@@ -1,6 +1,18 @@
 // utils/welcomeEmailService.js
 const nodemailer = require('nodemailer');
 
+// Jute Craftify Brand Colors
+const JUTE_COLORS = {
+  primary: '#6B4F3A',    // Earthy Brown
+  secondary: '#F5E6D3',  // Natural Beige
+  accent: '#3A7D44',     // Green
+  textDark: '#2C2420',   // Dark Text
+  textLight: '#8B7355',  // Light Text
+  white: '#FFFFFF',
+  lightBg: '#FAF7F2',
+  border: '#E5D5C0'
+};
+
 // Create transporter using environment variables
 const transporter = nodemailer.createTransport({
   host: process.env.INFO_SMTP_HOST,
@@ -45,26 +57,26 @@ const sendWelcomeEmail = async (email, name) => {
         body { 
           font-family: 'Segoe UI', Arial, sans-serif; 
           line-height: 1.6; 
-          color: #333; 
+          color: ${JUTE_COLORS.textDark}; 
           margin: 0;
           padding: 0;
-          background-color: #f4f4f4;
+          background-color: ${JUTE_COLORS.lightBg};
         }
         .container {
           max-width: 600px;
           margin: 20px auto;
-          background-color: #ffffff;
+          background-color: ${JUTE_COLORS.white};
           border-radius: 12px;
           overflow: hidden;
           box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         .header {
-          background: linear-gradient(135deg, #d9884e 0%, #e6a87c 100%);
+          background: linear-gradient(135deg, ${JUTE_COLORS.primary} 0%, #8B6B51 100%);
           padding: 30px 20px;
           text-align: center;
         }
         .header h1 {
-          color: white;
+          color: ${JUTE_COLORS.white};
           margin: 0;
           font-size: 28px;
           display: flex;
@@ -84,15 +96,15 @@ const sendWelcomeEmail = async (email, name) => {
           margin-bottom: 25px;
         }
         .benefits-box {
-          background: #fef8f0;
-          border-left: 4px solid #d9884e;
+          background: ${JUTE_COLORS.secondary};
+          border-left: 4px solid ${JUTE_COLORS.primary};
           padding: 20px;
           margin: 25px 0;
           border-radius: 8px;
         }
         .benefits-box h3 {
           margin: 0 0 15px 0;
-          color: #d9884e;
+          color: ${JUTE_COLORS.primary};
           display: flex;
           align-items: center;
           gap: 8px;
@@ -107,7 +119,7 @@ const sendWelcomeEmail = async (email, name) => {
           display: flex;
           align-items: center;
           gap: 10px;
-          border-bottom: 1px solid #f0e0d0;
+          border-bottom: 1px solid ${JUTE_COLORS.border};
         }
         .benefits-list li:last-child {
           border-bottom: none;
@@ -117,8 +129,8 @@ const sendWelcomeEmail = async (email, name) => {
         }
         .button {
           display: inline-block;
-          background: linear-gradient(135deg, #d9884e 0%, #e6a87c 100%);
-          color: white;
+          background: linear-gradient(135deg, ${JUTE_COLORS.primary} 0%, #8B6B51 100%);
+          color: ${JUTE_COLORS.white};
           padding: 12px 30px;
           text-decoration: none;
           border-radius: 8px;
@@ -127,23 +139,23 @@ const sendWelcomeEmail = async (email, name) => {
           text-align: center;
         }
         .footer {
-          background: #f9f9f9;
+          background: ${JUTE_COLORS.lightBg};
           padding: 20px;
           text-align: center;
           font-size: 12px;
-          color: #999;
-          border-top: 1px solid #eee;
+          color: ${JUTE_COLORS.textLight};
+          border-top: 1px solid ${JUTE_COLORS.border};
         }
         .social-links {
           margin: 15px 0;
         }
         .social-links a {
-          color: #d9884e;
+          color: ${JUTE_COLORS.primary};
           text-decoration: none;
           margin: 0 10px;
         }
         .highlight {
-          color: #d9884e;
+          color: ${JUTE_COLORS.primary};
           font-weight: bold;
         }
       </style>
@@ -152,16 +164,16 @@ const sendWelcomeEmail = async (email, name) => {
       <div class="container">
         <div class="header">
           <h1>
-            <span>🎉</span>
-            <span>Welcome to Asian Clothify!</span>
+            <span>🌾</span>
+            <span>Welcome to Jute Craftify!</span>
           </h1>
         </div>
         
         <div class="content">
           <div class="welcome-message">
             <p>Dear <strong>${name}</strong>,</p>
-            <p>Thank you for choosing <span class="highlight">Asian Clothify</span>! We're thrilled to have you as part of our wholesale community.</p>
-            <p>Your account has been successfully created and verified. You now have access to exclusive wholesale pricing, bulk ordering, and much more.</p>
+            <p>Thank you for choosing <span class="highlight">Jute Craftify</span>! We're thrilled to have you as part of our jute wholesale community.</p>
+            <p>Your account has been successfully created and verified. You now have access to exclusive wholesale pricing on premium jute products, bulk ordering, and much more.</p>
           </div>
           
           <div class="benefits-box">
@@ -171,10 +183,10 @@ const sendWelcomeEmail = async (email, name) => {
             </h3>
             <ul class="benefits-list">
               <li><span>🚀</span> <span><strong>Bulk Discounts</strong> - Special pricing for bulk orders</span></li>
-              <li><span>✨</span> <span><strong>Quality Guaranteed</strong> - 100% inspection guaranteed</span></li>
+              <li><span>✨</span> <span><strong>Quality Guaranteed</strong> - Premium jute products</span></li>
               <li><span>🌍</span> <span><strong>Global Shipping</strong> - Fast delivery worldwide</span></li>
               <li><span>🏷️</span> <span><strong>Wholesale Prices</strong> - Factory direct pricing</span></li>
-              <li><span>📦</span> <span><strong>Easy Ordering</strong> - Simple bulk order process</span></li>
+              <li><span>🌿</span> <span><strong>Eco-Friendly</strong> - Sustainable jute products</span></li>
             </ul>
           </div>
           
@@ -184,11 +196,11 @@ const sendWelcomeEmail = async (email, name) => {
             </a>
           </div>
           
-          <div style="margin-top: 25px; padding: 15px; background: #f0f8ff; border-radius: 8px;">
+          <div style="margin-top: 25px; padding: 15px; background: ${JUTE_COLORS.secondary}; border-radius: 8px;">
             <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>📞 Need Help?</strong></p>
             <p style="margin: 0; font-size: 14px;">Contact our support team:</p>
             <p style="margin: 5px 0 0 0; font-size: 14px;">
-              📧 <a href="mailto:${process.env.INFO_SMTP_USER}" style="color: #d9884e;">${process.env.INFO_SMTP_USER}</a><br>
+              📧 <a href="mailto:${process.env.INFO_SMTP_USER}" style="color: ${JUTE_COLORS.primary};">${process.env.INFO_SMTP_USER}</a><br>
               📞 +8801305-785685
             </p>
           </div>
@@ -200,11 +212,11 @@ const sendWelcomeEmail = async (email, name) => {
             <a href="#">Instagram</a> | 
             <a href="#">LinkedIn</a>
           </div>
-          <p>&copy; ${currentYear} Asian Clothify. All rights reserved.</p>
-          <p>49/10-C, Ground Floor, Genda, Savar, Dhaka, Bangladesh</p>
+          <p>&copy; ${currentYear} Jute Craftify. All rights reserved.</p>
+          <p>34/6, Mongla, Khulna, Bangladesh</p>
           <p>
-            <a href="${frontendUrl}/privacy" style="color: #999;">Privacy Policy</a> | 
-            <a href="${frontendUrl}/terms" style="color: #999;">Terms of Service</a>
+            <a href="${frontendUrl}/privacy" style="color: ${JUTE_COLORS.textLight};">Privacy Policy</a> | 
+            <a href="${frontendUrl}/terms" style="color: ${JUTE_COLORS.textLight};">Terms of Service</a>
           </p>
         </div>
       </div>
@@ -214,9 +226,9 @@ const sendWelcomeEmail = async (email, name) => {
 
   try {
     const result = await transporter.sendMail({
-      from: `"Asian Clothify" <${process.env.INFO_SMTP_USER}>`,
+      from: `"Jute Craftify" <${process.env.INFO_SMTP_USER}>`,
       to: email,
-      subject: `🎉 Welcome to Asian Clothify, ${name}!`,
+      subject: `🌾 Welcome to Jute Craftify, ${name}!`,
       html: htmlContent
     });
     
@@ -240,14 +252,14 @@ const sendGoogleWelcomeEmail = async (email, name, requiresProfileCompletion = t
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
   const currentYear = new Date().getFullYear();
 
-  // Create profile completion note if needed (similar styling as benefits box)
+  // Create profile completion note if needed
   const profileNote = requiresProfileCompletion ? `
-    <div style="margin: 25px 0; padding: 20px; background: #fff8e1; border-left: 4px solid #ffc107; border-radius: 8px;">
-      <h3 style="margin: 0 0 10px 0; color: #f57c00; display: flex; align-items: center; gap: 8px;">
+    <div style="margin: 25px 0; padding: 20px; background: ${JUTE_COLORS.secondary}; border-left: 4px solid ${JUTE_COLORS.accent}; border-radius: 8px;">
+      <h3 style="margin: 0 0 10px 0; color: ${JUTE_COLORS.accent}; display: flex; align-items: center; gap: 8px;">
         <span>📝</span>
         <span>Complete Your Profile</span>
       </h3>
-      <p style="margin: 0; font-size: 14px; color: #555;">Please visit your dashboard to complete your profile information including company details, address, and contact information to start ordering.</p>
+      <p style="margin: 0; font-size: 14px; color: ${JUTE_COLORS.textLight};">Please visit your dashboard to complete your profile information including company details, address, and contact information to start ordering premium jute products.</p>
     </div>
   ` : '';
 
@@ -261,26 +273,26 @@ const sendGoogleWelcomeEmail = async (email, name, requiresProfileCompletion = t
         body { 
           font-family: 'Segoe UI', Arial, sans-serif; 
           line-height: 1.6; 
-          color: #333; 
+          color: ${JUTE_COLORS.textDark}; 
           margin: 0;
           padding: 0;
-          background-color: #f4f4f4;
+          background-color: ${JUTE_COLORS.lightBg};
         }
         .container {
           max-width: 600px;
           margin: 20px auto;
-          background-color: #ffffff;
+          background-color: ${JUTE_COLORS.white};
           border-radius: 12px;
           overflow: hidden;
           box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         .header {
-          background: linear-gradient(135deg, #d9884e 0%, #e6a87c 100%);
+          background: linear-gradient(135deg, ${JUTE_COLORS.primary} 0%, #8B6B51 100%);
           padding: 30px 20px;
           text-align: center;
         }
         .header h1 {
-          color: white;
+          color: ${JUTE_COLORS.white};
           margin: 0;
           font-size: 28px;
           display: flex;
@@ -300,15 +312,15 @@ const sendGoogleWelcomeEmail = async (email, name, requiresProfileCompletion = t
           margin-bottom: 25px;
         }
         .benefits-box {
-          background: #fef8f0;
-          border-left: 4px solid #d9884e;
+          background: ${JUTE_COLORS.secondary};
+          border-left: 4px solid ${JUTE_COLORS.primary};
           padding: 20px;
           margin: 25px 0;
           border-radius: 8px;
         }
         .benefits-box h3 {
           margin: 0 0 15px 0;
-          color: #d9884e;
+          color: ${JUTE_COLORS.primary};
           display: flex;
           align-items: center;
           gap: 8px;
@@ -323,7 +335,7 @@ const sendGoogleWelcomeEmail = async (email, name, requiresProfileCompletion = t
           display: flex;
           align-items: center;
           gap: 10px;
-          border-bottom: 1px solid #f0e0d0;
+          border-bottom: 1px solid ${JUTE_COLORS.border};
         }
         .benefits-list li:last-child {
           border-bottom: none;
@@ -335,7 +347,7 @@ const sendGoogleWelcomeEmail = async (email, name, requiresProfileCompletion = t
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          background: #f0f0f0;
+          background: ${JUTE_COLORS.lightBg};
           padding: 5px 12px;
           border-radius: 20px;
           font-size: 13px;
@@ -343,8 +355,8 @@ const sendGoogleWelcomeEmail = async (email, name, requiresProfileCompletion = t
         }
         .button {
           display: inline-block;
-          background: linear-gradient(135deg, #d9884e 0%, #e6a87c 100%);
-          color: white;
+          background: linear-gradient(135deg, ${JUTE_COLORS.primary} 0%, #8B6B51 100%);
+          color: ${JUTE_COLORS.white};
           padding: 12px 30px;
           text-decoration: none;
           border-radius: 8px;
@@ -353,23 +365,23 @@ const sendGoogleWelcomeEmail = async (email, name, requiresProfileCompletion = t
           text-align: center;
         }
         .footer {
-          background: #f9f9f9;
+          background: ${JUTE_COLORS.lightBg};
           padding: 20px;
           text-align: center;
           font-size: 12px;
-          color: #999;
-          border-top: 1px solid #eee;
+          color: ${JUTE_COLORS.textLight};
+          border-top: 1px solid ${JUTE_COLORS.border};
         }
         .social-links {
           margin: 15px 0;
         }
         .social-links a {
-          color: #d9884e;
+          color: ${JUTE_COLORS.primary};
           text-decoration: none;
           margin: 0 10px;
         }
         .highlight {
-          color: #d9884e;
+          color: ${JUTE_COLORS.primary};
           font-weight: bold;
         }
       </style>
@@ -379,15 +391,15 @@ const sendGoogleWelcomeEmail = async (email, name, requiresProfileCompletion = t
         <div class="header">
           <h1>
             <span>🔐</span>
-            <span>Welcome to Asian Clothify!</span>
+            <span>Welcome to Jute Craftify!</span>
           </h1>
         </div>
         
         <div class="content">
           <div class="welcome-message">
             <p>Dear <strong>${name}</strong>,</p>
-            <p>You've successfully signed up with <span class="highlight">Google</span>. Welcome to <span class="highlight">Asian Clothify</span>!</p>
-            <p>Your account has been created and you now have access to our wholesale platform where you can browse products, place bulk orders, and manage your business.</p>
+            <p>You've successfully signed up with <span class="highlight">Google</span>. Welcome to <span class="highlight">Jute Craftify</span>!</p>
+            <p>Your account has been created and you now have access to our wholesale platform where you can browse premium jute products, place bulk orders, and manage your business.</p>
           </div>
           
           ${profileNote}
@@ -399,10 +411,10 @@ const sendGoogleWelcomeEmail = async (email, name, requiresProfileCompletion = t
             </h3>
             <ul class="benefits-list">
               <li><span>🚀</span> <span><strong>Bulk Discounts</strong> - Special pricing for bulk orders</span></li>
-              <li><span>✨</span> <span><strong>Quality Guaranteed</strong> - 100% inspection guaranteed</span></li>
+              <li><span>✨</span> <span><strong>Quality Guaranteed</strong> - Premium jute products</span></li>
               <li><span>🌍</span> <span><strong>Global Shipping</strong> - Fast delivery worldwide</span></li>
               <li><span>🏷️</span> <span><strong>Wholesale Prices</strong> - Factory direct pricing</span></li>
-              <li><span>📦</span> <span><strong>Easy Ordering</strong> - Simple bulk order process</span></li>
+              <li><span>🌿</span> <span><strong>Eco-Friendly</strong> - Sustainable jute products</span></li>
             </ul>
           </div>
           
@@ -412,11 +424,11 @@ const sendGoogleWelcomeEmail = async (email, name, requiresProfileCompletion = t
             </a>
           </div>
           
-          <div style="margin-top: 25px; padding: 15px; background: #f0f8ff; border-radius: 8px;">
+          <div style="margin-top: 25px; padding: 15px; background: ${JUTE_COLORS.secondary}; border-radius: 8px;">
             <p style="margin: 0 0 10px 0; font-size: 14px;"><strong>📞 Need Help?</strong></p>
             <p style="margin: 0; font-size: 14px;">Contact our support team:</p>
             <p style="margin: 5px 0 0 0; font-size: 14px;">
-              📧 <a href="mailto:${process.env.INFO_SMTP_USER}" style="color: #d9884e;">${process.env.INFO_SMTP_USER}</a><br>
+              📧 <a href="mailto:${process.env.INFO_SMTP_USER}" style="color: ${JUTE_COLORS.primary};">${process.env.INFO_SMTP_USER}</a><br>
               📞 +8801305-785685
             </p>
           </div>
@@ -428,11 +440,11 @@ const sendGoogleWelcomeEmail = async (email, name, requiresProfileCompletion = t
             <a href="#">Instagram</a> | 
             <a href="#">LinkedIn</a>
           </div>
-          <p>&copy; ${currentYear} Asian Clothify. All rights reserved.</p>
-          <p>49/10-C, Ground Floor, Genda, Savar, Dhaka, Bangladesh</p>
+          <p>&copy; ${currentYear} Jute Craftify. All rights reserved.</p>
+          <p>34/6, Mongla, Khulna, Bangladesh</p>
           <p>
-            <a href="${frontendUrl}/privacy" style="color: #999;">Privacy Policy</a> | 
-            <a href="${frontendUrl}/terms" style="color: #999;">Terms of Service</a>
+            <a href="${frontendUrl}/privacy" style="color: ${JUTE_COLORS.textLight};">Privacy Policy</a> | 
+            <a href="${frontendUrl}/terms" style="color: ${JUTE_COLORS.textLight};">Terms of Service</a>
           </p>
         </div>
       </div>
@@ -442,9 +454,9 @@ const sendGoogleWelcomeEmail = async (email, name, requiresProfileCompletion = t
 
   try {
     const result = await transporter.sendMail({
-      from: `"Asian Clothify" <${process.env.INFO_SMTP_USER}>`,
+      from: `"Jute Craftify" <${process.env.INFO_SMTP_USER}>`,
       to: email,
-      subject: `🔐 Welcome to Asian Clothify, ${name}!`,
+      subject: `🌾 Welcome to Jute Craftify, ${name}!`,
       html: htmlContent
     });
     

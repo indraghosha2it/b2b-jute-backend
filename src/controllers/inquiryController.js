@@ -2296,12 +2296,14 @@ const getModeratorInquiries = async (req, res) => {
 };
 
 
+
+
 // @desc    Update inquiry with quotation (Admin)
 // @route   PUT /api/admin/inquiries/:id/quotation
 // @access  Private/Admin
 // const updateInquiryWithQuotation = async (req, res) => {
 //   try {
-//     const { items, specialInstructions,adminNote, status } = req.body;
+//     const { items, specialInstructions, adminNote, status } = req.body;
 //     const inquiryId = req.params.id;
     
 //     const inquiry = await Inquiry.findById(inquiryId);
@@ -2312,10 +2314,10 @@ const getModeratorInquiries = async (req, res) => {
 //       });
 //     }
     
-//     // Update items with admin edits
+//     // Update items with admin edits - PRESERVE ALL FIELDS
 //     inquiry.items = items;
 //     inquiry.specialInstructions = specialInstructions || inquiry.specialInstructions;
-//      inquiry.adminNote = adminNote || inquiry.adminNote; 
+//     inquiry.adminNote = adminNote || inquiry.adminNote; 
 //     inquiry.status = status || 'quoted';
     
 //     // Recalculate totals based on edited items - RESPECTING ALL AVAILABILITY LEVELS
@@ -2329,26 +2331,41 @@ const getModeratorInquiries = async (req, res) => {
 //       let itemTotalQuantity = 0;
 //       let itemSubtotal = 0;
       
+//       const isWeightBased = item.orderUnit === 'kg' || item.orderUnit === 'ton';
+      
 //       item.colors.forEach(color => {
 //         // Skip if color is unavailable
 //         if (color.isAvailable === false) return;
         
 //         let colorTotalQuantity = 0;
         
-//         color.sizeQuantities.forEach(sq => {
-//           // Only include if size is available
-//           if (sq.isAvailable !== false) {
-//             colorTotalQuantity += sq.quantity || 0;
+//         if (isWeightBased) {
+//           // For weight-based: use the quantity field directly
+//           colorTotalQuantity = color.quantity || color.totalQuantity || color.totalForColor || 0;
+          
+//           // CRITICAL FIX: Ensure all quantity fields are synchronized
+//           color.totalForColor = colorTotalQuantity;
+//           color.totalQuantity = colorTotalQuantity;
+//           // Keep the original quantity field as-is
+//           if (color.quantity === undefined) {
+//             color.quantity = colorTotalQuantity;
 //           }
-//         });
+//         } else {
+//           // For piece-based: sum from sizeQuantities (only include available sizes)
+//           color.sizeQuantities.forEach(sq => {
+//             if (sq.isAvailable !== false) {
+//               colorTotalQuantity += sq.quantity || 0;
+//             }
+//           });
+          
+//           // Update the color's total fields
+//           color.totalForColor = colorTotalQuantity;
+//           color.totalQuantity = colorTotalQuantity;
+//         }
         
 //         const colorSubtotal = colorTotalQuantity * (color.unitPrice || 0);
 //         itemTotalQuantity += colorTotalQuantity;
 //         itemSubtotal += colorSubtotal;
-        
-//         // Update the color's totalForColor based on available sizes
-//         color.totalForColor = colorTotalQuantity;
-//         color.totalQuantity = colorTotalQuantity;
 //       });
       
 //       // Update the item totals
@@ -2394,13 +2411,19 @@ const getModeratorInquiries = async (req, res) => {
 //   }
 // };
 
-// @desc    Update inquiry with quotation (Admin)
-// @route   PUT /api/admin/inquiries/:id/quotation
-// @access  Private/Admin
+// controllers/adminInquiryController.js - Fix the updateInquiryWithQuotation function
+
 const updateInquiryWithQuotation = async (req, res) => {
   try {
     const { items, specialInstructions, adminNote, status } = req.body;
     const inquiryId = req.params.id;
+    
+    console.log('📝 Received quotation data:', JSON.stringify({
+      itemsCount: items.length,
+      hasSpecialInstructions: !!specialInstructions,
+      hasAdminNote: !!adminNote,
+      status
+    }, null, 2));
     
     const inquiry = await Inquiry.findById(inquiryId);
     if (!inquiry) {
@@ -2410,87 +2433,128 @@ const updateInquiryWithQuotation = async (req, res) => {
       });
     }
     
-    // Update items with admin edits - PRESERVE ALL FIELDS
-    inquiry.items = items;
+    const oldStatus = inquiry.status;
+    
+    // Update items with admin edits - PRESERVE ALL FIELDS including availability
+    const updatedItems = items.map(adminItem => {
+      const originalItem = inquiry.items.find(i => i.productId?.toString() === adminItem.productId?.toString());
+      
+      return {
+        productId: adminItem.productId,
+        productName: adminItem.productName,
+        productImage: adminItem.productImage || originalItem?.productImage,
+        orderUnit: adminItem.orderUnit || originalItem?.orderUnit || 'piece',
+        moq: adminItem.moq || originalItem?.moq,
+        unitPrice: adminItem.unitPrice || originalItem?.unitPrice,
+        isAvailable: adminItem.isAvailable !== false,
+        specialInstructions: adminItem.specialInstructions || '',
+        totalQuantity: adminItem.totalQuantity || 0,
+        colors: adminItem.colors.map(adminColor => {
+          const originalColor = originalItem?.colors?.find(c => c.color?.code === adminColor.color?.code);
+          
+          return {
+            color: adminColor.color,
+            unitPrice: adminColor.unitPrice || originalColor?.unitPrice || 0,
+            isAvailable: adminColor.isAvailable !== false,
+            quantity: adminColor.quantity || 0,
+            totalForColor: adminColor.totalForColor || 0,
+            totalQuantity: adminColor.totalQuantity || adminColor.totalForColor || 0,
+            sizeQuantities: (adminColor.sizeQuantities || []).map(sq => ({
+              size: sq.size,
+              quantity: sq.quantity || 0,
+              isAvailable: sq.isAvailable !== false
+            }))
+          };
+        })
+      };
+    });
+    
+    inquiry.items = updatedItems;
     inquiry.specialInstructions = specialInstructions || inquiry.specialInstructions;
-    inquiry.adminNote = adminNote || inquiry.adminNote; 
+    inquiry.adminNote = adminNote || inquiry.adminNote;
     inquiry.status = status || 'quoted';
     
-    // Recalculate totals based on edited items - RESPECTING ALL AVAILABILITY LEVELS
+    // Recalculate totals based on AVAILABLE items only
     let totalQuantity = 0;
     let subtotal = 0;
     
     inquiry.items.forEach(item => {
-      // Skip if product is unavailable
-      if (item.isAvailable === false) return;
+      if (item.isAvailable === false) {
+        console.log(`⚠️ Product ${item.productName} is UNAVAILABLE - skipping`);
+        return;
+      }
       
       let itemTotalQuantity = 0;
       let itemSubtotal = 0;
-      
       const isWeightBased = item.orderUnit === 'kg' || item.orderUnit === 'ton';
       
       item.colors.forEach(color => {
-        // Skip if color is unavailable
-        if (color.isAvailable === false) return;
+        if (color.isAvailable === false) {
+          console.log(`⚠️ Color ${color.color?.code} is UNAVAILABLE - skipping`);
+          return;
+        }
         
         let colorTotalQuantity = 0;
         
         if (isWeightBased) {
-          // For weight-based: use the quantity field directly
-          colorTotalQuantity = color.quantity || color.totalQuantity || color.totalForColor || 0;
-          
-          // CRITICAL FIX: Ensure all quantity fields are synchronized
-          color.totalForColor = colorTotalQuantity;
-          color.totalQuantity = colorTotalQuantity;
-          // Keep the original quantity field as-is
-          if (color.quantity === undefined) {
-            color.quantity = colorTotalQuantity;
-          }
+          colorTotalQuantity = color.quantity || color.totalQuantity || 0;
         } else {
-          // For piece-based: sum from sizeQuantities (only include available sizes)
-          color.sizeQuantities.forEach(sq => {
+          colorTotalQuantity = color.sizeQuantities.reduce((sum, sq) => {
             if (sq.isAvailable !== false) {
-              colorTotalQuantity += sq.quantity || 0;
+              return sum + (sq.quantity || 0);
             }
-          });
-          
-          // Update the color's total fields
-          color.totalForColor = colorTotalQuantity;
-          color.totalQuantity = colorTotalQuantity;
+            return sum;
+          }, 0);
         }
         
-        const colorSubtotal = colorTotalQuantity * (color.unitPrice || 0);
+        const colorUnitPrice = color.unitPrice || item.unitPrice || 0;
+        const colorSubtotal = colorTotalQuantity * colorUnitPrice;
+        
         itemTotalQuantity += colorTotalQuantity;
         itemSubtotal += colorSubtotal;
+        
+        color.totalForColor = colorTotalQuantity;
+        color.totalQuantity = colorTotalQuantity;
+        
+        console.log(`📊 Color ${color.color?.code}: ${colorTotalQuantity} ${isWeightBased ? item.orderUnit : 'pcs'} = $${colorSubtotal.toFixed(2)}`);
       });
       
-      // Update the item totals
       item.totalQuantity = itemTotalQuantity;
       
       totalQuantity += itemTotalQuantity;
       subtotal += itemSubtotal;
+      
+      console.log(`📊 Product ${item.productName}: ${itemTotalQuantity} units = $${itemSubtotal.toFixed(2)}`);
     });
     
     inquiry.totalQuantity = totalQuantity;
     inquiry.subtotal = subtotal;
     
+    console.log(`📊 FINAL TOTALS - Quantity: ${totalQuantity}, Amount: $${subtotal.toFixed(2)}`);
+    
     // Add internal note about quotation
     if (!inquiry.internalNotes) inquiry.internalNotes = [];
     inquiry.internalNotes.push({
-      note: `Quotation prepared and sent to customer. Total amount: $${subtotal.toFixed(2)}`,
+      note: `Quotation prepared and sent to customer. ${subtotal > 0 ? `Total amount: $${subtotal.toFixed(2)}` : 'No available items'}`,
       addedBy: req.user.id,
       addedAt: new Date()
     });
     
     await inquiry.save();
     
-    // Send email notification to customer
-    try {
-      const { sendStatusUpdateEmail } = require('../utils/emailService');
-      await sendStatusUpdateEmail(inquiry, 'submitted', 'quoted');
-      console.log(`📧 Quotation email sent for inquiry: ${inquiry.inquiryNumber}`);
-    } catch (emailError) {
-      console.error('❌ Failed to send quotation email:', emailError.message);
+    console.log(`✅ Inquiry ${inquiry.inquiryNumber} updated successfully`);
+    
+    // Send email notification to customer ONLY if there are available items
+    if (totalQuantity > 0) {
+      try {
+        const { sendStatusUpdateEmail } = require('../utils/emailService');
+        await sendStatusUpdateEmail(inquiry, oldStatus, 'quoted', adminNote);
+        console.log(`📧 Quotation email sent for inquiry: ${inquiry.inquiryNumber}`);
+      } catch (emailError) {
+        console.error('❌ Failed to send quotation email:', emailError.message);
+      }
+    } else {
+      console.log(`⚠️ No available items in quotation - email not sent`);
     }
     
     res.json({

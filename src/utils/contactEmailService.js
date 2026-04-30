@@ -1,14 +1,17 @@
+
+
+
 // // utils/contactEmailService.js
 // const nodemailer = require('nodemailer');
 
-// // Create transporter using environment variables
+// // Create transporter using INFO email configuration
 // const transporter = nodemailer.createTransport({
-//   host: process.env.SMTP_HOST,
-//   port: parseInt(process.env.SMTP_PORT) || 465,
+//   host: process.env.INFO_SMTP_HOST,
+//   port: parseInt(process.env.INFO_SMTP_PORT) || 465,
 //   secure: true,
 //   auth: {
-//     user: process.env.SMTP_USER,
-//     pass: process.env.SMTP_PASSWORD,
+//     user: process.env.INFO_SMTP_USER,
+//     pass: process.env.INFO_SMTP_PASSWORD,
 //   },
 //   tls: {
 //     rejectUnauthorized: false
@@ -21,7 +24,7 @@
 //     console.error('❌ Contact Email Service - Configuration error:', error.message);
 //   } else {
 //     console.log('✅ Contact Email Service is ready');
-//     console.log(`📧 Using account: ${process.env.SMTP_USER}`);
+//     console.log(`📧 Using account: ${process.env.INFO_SMTP_USER}`);
 //   }
 // });
 
@@ -76,6 +79,7 @@
 // const sendContactFormEmails = async (formData) => {
 //   console.log('📧 Sending contact form emails...');
 //   console.log('📧 From:', formData.email);
+//   console.log('📧 Using sender email:', process.env.INFO_EMAIL_FROM);
   
 //   try {
 //     const {
@@ -329,7 +333,7 @@
 //                 </div>
 //                 <div style="display: flex; align-items: center; margin-bottom: 10px;">
 //                   <span style="font-size: 20px; margin-right: 12px;">📧</span>
-//                   <span><strong>Email:</strong> <a href="mailto:${process.env.SMTP_USER}" style="color: #E39A65; text-decoration: none;">${process.env.SMTP_USER}</a></span>
+//                   <span><strong>Email:</strong> <a href="mailto:${process.env.INFO_EMAIL_FROM}" style="color: #E39A65; text-decoration: none;">${process.env.INFO_EMAIL_FROM}</a></span>
 //                 </div>
 //               </div>
 
@@ -345,7 +349,7 @@
 //                 <p style="margin-bottom: 5px; font-size: 16px;">Best regards,</p>
 //                 <p style="margin: 0; font-weight: bold; color: #E39A65; font-size: 16px;">The Asian Clothify Team</p>
 //                 <p style="font-size: 13px; color: #999; margin-top: 15px;">
-//                   📧 ${process.env.SMTP_USER}<br>
+//                   📧 ${process.env.INFO_EMAIL_FROM}<br>
 //                   49/10-C, Ground Floor, Genda, Savar, Dhaka, Bangladesh
 //                 </p>
 //               </div>
@@ -356,7 +360,7 @@
 //       `
 //     };
 
-//     // 2. Send notification email to admin
+//     // 2. Send notification email to admin (using info@asianclothify.com)
 //     const adminTemplate = {
 //       subject: `📬 New Contact Form Submission - ${name} - ${inquiryTypeLabel}`,
 //       html: `
@@ -583,19 +587,19 @@
 //       `
 //     };
 
-//     // Send to customer
+//     // Send to customer - FROM info@asianclothify.com
 //     const customerResult = await transporter.sendMail({
-//       from: `"Asian Clothify" <${process.env.SMTP_USER}>`,
+//       from: `"Asian Clothify" <${process.env.INFO_EMAIL_FROM}>`,
 //       to: email,
 //       subject: customerTemplate.subject,
 //       html: customerTemplate.html
 //     });
 //     console.log('✅ Customer contact confirmation email sent:', customerResult.messageId);
 
-//     // Send to admin
+//     // Send to admin - TO info@asianclothify.com
 //     const adminResult = await transporter.sendMail({
-//       from: `"Asian Clothify Contact" <${process.env.SMTP_USER}>`,
-//       to: process.env.OWNER_EMAIL || process.env.SMTP_USER,
+//       from: `"Asian Clothify Contact" <${process.env.INFO_EMAIL_FROM}>`,
+//       to: process.env.INFO_EMAIL_FROM, // Send to info@asianclothify.com
 //       subject: adminTemplate.subject,
 //       html: adminTemplate.html
 //     });
@@ -608,6 +612,9 @@
 //   }
 // };
 
+
+
+
 // module.exports = {
 //   sendContactFormEmails
 // };
@@ -615,6 +622,18 @@
 
 // utils/contactEmailService.js
 const nodemailer = require('nodemailer');
+
+// Jute Craftify Brand Colors
+const JUTE_COLORS = {
+  primary: '#6B4F3A',    // Earthy Brown
+  secondary: '#F5E6D3',  // Natural Beige
+  accent: '#3A7D44',     // Green
+  textDark: '#2C2420',   // Dark Text
+  textLight: '#8B7355',  // Light Text
+  white: '#FFFFFF',
+  lightBg: '#FAF7F2',
+  border: '#E5D5C0'
+};
 
 // Create transporter using INFO email configuration
 const transporter = nodemailer.createTransport({
@@ -660,14 +679,13 @@ const formatDate = (dateString) => {
  */
 const getInquiryTypeColor = (type) => {
   const colors = {
-    wholesale: '#E39A65',
-    custom: '#9C27B0',
-    sample: '#2196F3',
-    partnership: '#4CAF50',
-    other: '#FF9800'
+    wholesale: JUTE_COLORS.primary,
+    custom: JUTE_COLORS.accent,
+    sample: '#4A90E2',
+    partnership: JUTE_COLORS.accent,
+    other: JUTE_COLORS.primary
   };
-  // For custom types, use a default color
-  return colors[type] || '#E39A65';
+  return colors[type] || JUTE_COLORS.primary;
 };
 
 /**
@@ -681,7 +699,6 @@ const getInquiryTypeLabel = (type) => {
     partnership: 'Partnership',
     other: 'Other'
   };
-  // If it's not a predefined type, return the custom text
   return labels[type] || type;
 };
 
@@ -690,8 +707,8 @@ const getInquiryTypeLabel = (type) => {
  */
 const sendContactFormEmails = async (formData) => {
   console.log('📧 Sending contact form emails...');
-  console.log('📧 From:', formData.email);
-  console.log('📧 Using sender email:', process.env.INFO_EMAIL_FROM);
+  console.log('📧 Customer email:', formData.email);
+  console.log('📧 Admin email:', process.env.INFO_EMAIL_FROM);
   
   try {
     const {
@@ -706,16 +723,18 @@ const sendContactFormEmails = async (formData) => {
     } = formData;
 
     if (!email) {
-      throw new Error('Email is required');
+      throw new Error('Customer email is required');
     }
 
     const inquiryTypeColor = getInquiryTypeColor(inquiryType);
     const inquiryTypeLabel = getInquiryTypeLabel(inquiryType);
     const currentDate = formatDate(new Date());
 
-    // 1. Send confirmation email to customer
-    const customerTemplate = {
-      subject: `📬 Thank You for Contacting Asian Clothify`,
+    // 1. Send confirmation email to CUSTOMER
+    const customerEmailResult = await transporter.sendMail({
+      from: `"Jute Craftify" <${process.env.INFO_EMAIL_FROM}>`,
+      to: email,  // Customer's email address
+      subject: `🌾 Thank You for Contacting Jute Craftify`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -726,26 +745,26 @@ const sendContactFormEmails = async (formData) => {
             body { 
               font-family: Arial, sans-serif; 
               line-height: 1.6; 
-              color: #333; 
+              color: ${JUTE_COLORS.textDark}; 
               margin: 0;
               padding: 0;
-              background-color: #f4f4f4;
+              background-color: ${JUTE_COLORS.lightBg};
             }
             .container {
-              max-width: 700px;
+              max-width: 600px;
               margin: 20px auto;
-              background-color: #ffffff;
+              background-color: ${JUTE_COLORS.white};
               border-radius: 12px;
               overflow: hidden;
               box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             }
             .header {
-              background: linear-gradient(135deg, #E39A65 0%, #d48b54 100%);
-              padding: 25px 30px;
+              background: linear-gradient(135deg, ${JUTE_COLORS.primary} 0%, #8B6B51 100%);
+              padding: 30px 20px;
               text-align: center;
             }
             .header h1 {
-              color: white;
+              color: ${JUTE_COLORS.white};
               margin: 0;
               font-size: 28px;
               display: flex;
@@ -754,11 +773,10 @@ const sendContactFormEmails = async (formData) => {
               gap: 12px;
             }
             .header h1 span:first-child {
-              font-size: 32px;
-              line-height: 1;
+              font-size: 36px;
             }
             .content {
-              padding: 35px 30px;
+              padding: 30px;
               text-align: left;
             }
             .section-title {
@@ -768,80 +786,46 @@ const sendContactFormEmails = async (formData) => {
               display: flex;
               align-items: center;
               gap: 8px;
-              color: #333;
-              border-bottom: 2px solid #f0f0f0;
+              color: ${JUTE_COLORS.textDark};
+              border-bottom: 2px solid ${JUTE_COLORS.border};
               padding-bottom: 10px;
             }
-            .section-title span:first-child {
-              font-size: 22px;
-            }
             .info-box {
-              background: #f9f9f9;
+              background: ${JUTE_COLORS.lightBg};
               padding: 20px;
               border-radius: 8px;
               margin: 15px 0;
-              border-left: 4px solid #E39A65;
+              border-left: 4px solid ${JUTE_COLORS.primary};
             }
             .info-row {
               display: flex;
               margin-bottom: 12px;
-              border-bottom: 1px solid #eee;
+              border-bottom: 1px solid ${JUTE_COLORS.border};
               padding-bottom: 8px;
             }
             .info-label {
-              width: 140px;
+              width: 120px;
               font-weight: 600;
-              color: #555;
+              color: ${JUTE_COLORS.textLight};
             }
             .info-value {
               flex: 1;
-              color: #333;
-            }
-            .message-box {
-              background: #fff9f0;
-              padding: 20px;
-              border-radius: 8px;
-              margin: 20px 0;
-              border: 1px solid #ffdbb5;
+              color: ${JUTE_COLORS.textDark};
             }
             .inquiry-badge {
               display: inline-block;
               background: ${inquiryTypeColor};
-              color: white;
-              padding: 6px 15px;
-              border-radius: 30px;
-              font-size: 14px;
+              color: ${JUTE_COLORS.white};
+              padding: 5px 15px;
+              border-radius: 20px;
+              font-size: 12px;
               font-weight: 600;
-              margin: 10px 0;
             }
             .footer {
               margin-top: 30px;
               padding-top: 20px;
-              border-top: 1px solid #eee;
+              border-top: 1px solid ${JUTE_COLORS.border};
               text-align: left;
-            }
-            .social-links {
-              margin-top: 15px;
-              text-align: center;
-            }
-            .social-link {
-              display: inline-block;
-              margin: 0 10px;
-              color: #E39A65;
-              text-decoration: none;
-              font-size: 14px;
-            }
-            hr {
-              border: none;
-              border-top: 1px solid #eee;
-              margin: 20px 0;
-            }
-            .quick-response {
-              background: #e8f5e9;
-              padding: 15px;
-              border-radius: 8px;
-              margin: 20px 0;
-              text-align: center;
             }
           </style>
         </head>
@@ -849,7 +833,7 @@ const sendContactFormEmails = async (formData) => {
           <div class="container">
             <div class="header">
               <h1>
-                <span>📬</span>
+                <span>🌾</span>
                 <span>Thank You for Contacting Us</span>
               </h1>
             </div>
@@ -858,15 +842,8 @@ const sendContactFormEmails = async (formData) => {
               <p style="margin-bottom: 20px; font-size: 16px;">Dear <strong>${name}</strong>,</p>
               
               <p style="margin-bottom: 20px; font-size: 16px;">
-                Thank you for reaching out to <strong>Asian Clothify</strong>. We have received your inquiry and will get back to you within <strong>2 hours</strong> during business hours.
+                Thank you for reaching out to <strong>Jute Craftify</strong>. We have received your inquiry and our team will get back to you within <strong>24 hours</strong>.
               </p>
-
-              <div class="quick-response">
-                <p style="margin: 0; font-size: 16px;">
-                  <span style="font-size: 20px; margin-right: 8px;">⏱️</span>
-                  <strong>Response Time:</strong> Within 24 hours (Mon-Fri, 9AM-6PM BST)
-                </p>
-              </div>
 
               <div class="section-title">
                 <span>📋</span>
@@ -881,7 +858,7 @@ const sendContactFormEmails = async (formData) => {
                   </div>
                 </div>
                 <div class="info-row">
-                  <div class="info-label">Date & Time:</div>
+                  <div class="info-label">Date:</div>
                   <div class="info-value">${currentDate}</div>
                 </div>
                 <div class="info-row">
@@ -902,12 +879,6 @@ const sendContactFormEmails = async (formData) => {
                   <div class="info-value">${company}</div>
                 </div>
                 ` : ''}
-                ${country ? `
-                <div class="info-row">
-                  <div class="info-label">Country:</div>
-                  <div class="info-value">${country}</div>
-                </div>
-                ` : ''}
                 ${productInterest ? `
                 <div class="info-row">
                   <div class="info-label">Product Interest:</div>
@@ -921,48 +892,17 @@ const sendContactFormEmails = async (formData) => {
                 <span>Your Message</span>
               </div>
               
-              <div class="message-box">
+              <div style="background: ${JUTE_COLORS.secondary}; padding: 15px; border-radius: 8px; margin: 15px 0;">
                 <p style="margin: 0; white-space: pre-wrap; line-height: 1.6;">${message}</p>
               </div>
 
-              <hr>
-
-              <div class="section-title">
-                <span>📞</span>
-                <span>Need Faster Response?</span>
-              </div>
-              
-              <p style="margin-bottom: 15px;">For immediate assistance, you can reach us through:</p>
-              
-              <div style="margin: 20px 0;">
-                <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                  <span style="font-size: 20px; margin-right: 12px;">📱</span>
-                  <span><strong>WhatsApp:</strong> <a href="https://wa.me/8801305785685" style="color: #25D366; text-decoration: none;">+880 1305-785685</a></span>
-                </div>
-                <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                  <span style="font-size: 20px; margin-right: 12px;">📞</span>
-                  <span><strong>Phone:</strong> <a href="tel:+8801305785685" style="color: #333; text-decoration: none;">+880 1305-785685</a></span>
-                </div>
-                <div style="display: flex; align-items: center; margin-bottom: 10px;">
-                  <span style="font-size: 20px; margin-right: 12px;">📧</span>
-                  <span><strong>Email:</strong> <a href="mailto:${process.env.INFO_EMAIL_FROM}" style="color: #E39A65; text-decoration: none;">${process.env.INFO_EMAIL_FROM}</a></span>
-                </div>
-              </div>
-
-              <div class="social-links">
-                <a href="https://facebook.com/asianclothify" class="social-link">Facebook</a> •
-                <a href="https://instagram.com/asianclothify" class="social-link">Instagram</a> •
-                <a href="https://asianclothify.com" class="social-link">Website</a>
-              </div>
-              
-              <hr>
-              
               <div class="footer">
                 <p style="margin-bottom: 5px; font-size: 16px;">Best regards,</p>
-                <p style="margin: 0; font-weight: bold; color: #E39A65; font-size: 16px;">The Asian Clothify Team</p>
-                <p style="font-size: 13px; color: #999; margin-top: 15px;">
+                <p style="margin: 0; font-weight: bold; color: ${JUTE_COLORS.primary}; font-size: 16px;">The Jute Craftify Team</p>
+                <p style="font-size: 12px; color: ${JUTE_COLORS.textLight}; margin-top: 15px;">
                   📧 ${process.env.INFO_EMAIL_FROM}<br>
-                  49/10-C, Ground Floor, Genda, Savar, Dhaka, Bangladesh
+                  📞 +880 1305-785685<br>
+                  34/6, Mongla, Khulna, Bangladesh
                 </p>
               </div>
             </div>
@@ -970,11 +910,14 @@ const sendContactFormEmails = async (formData) => {
         </body>
         </html>
       `
-    };
+    });
+    console.log('✅ Customer confirmation email sent to:', email, 'Message ID:', customerEmailResult.messageId);
 
-    // 2. Send notification email to admin (using info@asianclothify.com)
-    const adminTemplate = {
-      subject: `📬 New Contact Form Submission - ${name} - ${inquiryTypeLabel}`,
+    // 2. Send notification email to ADMIN
+    const adminEmailResult = await transporter.sendMail({
+      from: `"Jute Craftify Contact" <${process.env.INFO_EMAIL_FROM}>`,
+      to: process.env.INFO_EMAIL_FROM,  // Admin email
+      subject: `🌾 New Contact Form Submission - ${name} - ${inquiryTypeLabel}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -985,26 +928,26 @@ const sendContactFormEmails = async (formData) => {
             body { 
               font-family: Arial, sans-serif; 
               line-height: 1.6; 
-              color: #333; 
+              color: ${JUTE_COLORS.textDark}; 
               margin: 0;
               padding: 20px;
-              background-color: #f4f4f4;
+              background-color: ${JUTE_COLORS.lightBg};
             }
             .container {
               max-width: 700px;
               margin: 0 auto;
-              background-color: #ffffff;
+              background-color: ${JUTE_COLORS.white};
               border-radius: 12px;
               overflow: hidden;
               box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             }
             .header {
-              background: linear-gradient(135deg, #E39A65 0%, #d48b54 100%);
+              background: linear-gradient(135deg, ${JUTE_COLORS.primary} 0%, #8B6B51 100%);
               padding: 25px 30px;
               text-align: center;
             }
             .header h1 {
-              color: white;
+              color: ${JUTE_COLORS.white};
               margin: 0;
               font-size: 28px;
               display: flex;
@@ -1013,7 +956,7 @@ const sendContactFormEmails = async (formData) => {
               gap: 10px;
             }
             .content {
-              padding: 35px 30px;
+              padding: 30px;
               text-align: left;
             }
             .section-title {
@@ -1023,15 +966,12 @@ const sendContactFormEmails = async (formData) => {
               display: flex;
               align-items: center;
               gap: 8px;
-              color: #333;
-              border-bottom: 2px solid #f0f0f0;
+              color: ${JUTE_COLORS.textDark};
+              border-bottom: 2px solid ${JUTE_COLORS.border};
               padding-bottom: 10px;
             }
-            .section-title span:first-child {
-              font-size: 22px;
-            }
             .info-grid {
-              background: #f9f9f9;
+              background: ${JUTE_COLORS.lightBg};
               padding: 20px;
               border-radius: 8px;
               margin: 15px 0;
@@ -1039,29 +979,29 @@ const sendContactFormEmails = async (formData) => {
             .info-row {
               display: flex;
               margin-bottom: 12px;
-              border-bottom: 1px solid #eee;
+              border-bottom: 1px solid ${JUTE_COLORS.border};
               padding-bottom: 8px;
             }
             .info-label {
-              width: 140px;
+              width: 120px;
               font-weight: 600;
-              color: #555;
+              color: ${JUTE_COLORS.textLight};
             }
             .info-value {
               flex: 1;
-              color: #333;
+              color: ${JUTE_COLORS.textDark};
             }
             .message-box {
-              background: #fff9f0;
+              background: ${JUTE_COLORS.secondary};
               padding: 20px;
               border-radius: 8px;
               margin: 20px 0;
-              border: 1px solid #ffdbb5;
+              border: 1px solid ${JUTE_COLORS.border};
             }
             .inquiry-badge {
               display: inline-block;
               background: ${inquiryTypeColor};
-              color: white;
+              color: ${JUTE_COLORS.white};
               padding: 4px 12px;
               border-radius: 20px;
               font-size: 12px;
@@ -1072,34 +1012,23 @@ const sendContactFormEmails = async (formData) => {
               text-align: center;
             }
             .button {
-              background: #E39A65;
-              color: white;
-              padding: 12px 30px;
+              background: ${JUTE_COLORS.primary};
+              color: ${JUTE_COLORS.white};
+              padding: 10px 25px;
               text-decoration: none;
               border-radius: 8px;
               display: inline-block;
               font-weight: bold;
-              font-size: 15px;
+              font-size: 14px;
               margin: 0 10px;
-              border: 1px solid #E39A65;
-            }
-            .button-outline {
-              background: white;
-              color: #E39A65;
-              border: 1px solid #E39A65;
             }
             .footer {
               margin-top: 30px;
               padding-top: 20px;
-              border-top: 1px solid #eee;
+              border-top: 1px solid ${JUTE_COLORS.border};
               text-align: left;
               font-size: 13px;
-              color: #666;
-            }
-            hr {
-              border: none;
-              border-top: 1px solid #eee;
-              margin: 20px 0;
+              color: ${JUTE_COLORS.textLight};
             }
           </style>
         </head>
@@ -1107,15 +1036,13 @@ const sendContactFormEmails = async (formData) => {
           <div class="container">
             <div class="header">
               <h1>
-                <span>📬</span>
+                <span>🌾</span>
                 <span>New Contact Form Submission</span>
               </h1>
             </div>
             
             <div class="content">
-              <p style="margin-bottom: 20px; font-size: 16px;">
-                A new contact form has been submitted on <strong>${currentDate}</strong>.
-              </p>
+              <p style="margin-bottom: 20px;">A new contact form has been submitted.</p>
 
               <div class="section-title">
                 <span>👤</span>
@@ -1135,11 +1062,11 @@ const sendContactFormEmails = async (formData) => {
                 </div>
                 <div class="info-row">
                   <div class="info-label">Email:</div>
-                  <div class="info-value"><a href="mailto:${email}" style="color: #E39A65;">${email}</a></div>
+                  <div class="info-value"><a href="mailto:${email}" style="color: ${JUTE_COLORS.primary};">${email}</a></div>
                 </div>
                 <div class="info-row">
                   <div class="info-label">Phone:</div>
-                  <div class="info-value"><a href="tel:${phone}" style="color: #333;">${phone}</a></div>
+                  <div class="info-value"><a href="tel:${phone}" style="color: ${JUTE_COLORS.textDark};">${phone}</a></div>
                 </div>
                 ${company ? `
                 <div class="info-row">
@@ -1167,55 +1094,24 @@ const sendContactFormEmails = async (formData) => {
               </div>
               
               <div class="message-box">
-                <p style="margin: 0; white-space: pre-wrap; line-height: 1.6;">${message}</p>
-              </div>
-
-              <hr>
-
-              <div class="section-title">
-                <span>⚡</span>
-                <span>Quick Actions</span>
+                <p style="margin: 0; white-space: pre-wrap;">${message}</p>
               </div>
 
               <div class="action-buttons">
-                <a href="mailto:${email}" class="button button-outline" style="margin-bottom: 10px;">📧 Reply via Email</a>
-                <a href="https://wa.me/${phone.replace(/[^0-9]/g, '')}" class="button" style="margin-bottom: 10px;">📱 WhatsApp Reply</a>
-              </div>
-
-              <div style="background: #f0f0f0; padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin: 0; font-size: 14px;">
-                  <strong>💡 Tip:</strong> Response time target: < 2 hours
-                </p>
+                <a href="mailto:${email}" class="button">📧 Reply via Email</a>
+                <a href="https://wa.me/${phone.replace(/[^0-9]/g, '')}" class="button">📱 WhatsApp Reply</a>
               </div>
               
               <div class="footer">
-                <p style="margin: 0;">This is an automated notification from your website contact form.</p>
-                <p style="margin: 5px 0 0 0;">To respond to this inquiry, please use the links above or your email client.</p>
+                <p>This is an automated notification from Jute Craftify contact form.</p>
               </div>
             </div>
           </div>
         </body>
         </html>
       `
-    };
-
-    // Send to customer - FROM info@asianclothify.com
-    const customerResult = await transporter.sendMail({
-      from: `"Asian Clothify" <${process.env.INFO_EMAIL_FROM}>`,
-      to: email,
-      subject: customerTemplate.subject,
-      html: customerTemplate.html
     });
-    console.log('✅ Customer contact confirmation email sent:', customerResult.messageId);
-
-    // Send to admin - TO info@asianclothify.com
-    const adminResult = await transporter.sendMail({
-      from: `"Asian Clothify Contact" <${process.env.INFO_EMAIL_FROM}>`,
-      to: process.env.INFO_EMAIL_FROM, // Send to info@asianclothify.com
-      subject: adminTemplate.subject,
-      html: adminTemplate.html
-    });
-    console.log('✅ Admin contact notification email sent:', adminResult.messageId);
+    console.log('✅ Admin notification email sent to:', process.env.INFO_EMAIL_FROM, 'Message ID:', adminEmailResult.messageId);
 
     return { success: true };
   } catch (error) {
@@ -1223,9 +1119,6 @@ const sendContactFormEmails = async (formData) => {
     return { success: false, error: error.message };
   }
 };
-
-
-
 
 module.exports = {
   sendContactFormEmails

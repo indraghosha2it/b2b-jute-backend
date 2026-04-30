@@ -166,11 +166,188 @@ const generateVerificationToken = () => {
 // @desc    Register a new user (Step 1: Send OTP)
 // @route   POST /api/auth/register
 // @access  Public
+// const registerUser = async (req, res) => {
+//   try {
+//     console.log('📝 Registration request received');
+
+//     const {
+//       companyName,
+//       contactPerson,
+//       email,
+//       phone,
+//       whatsapp,
+//       country,
+//       address,
+//       city,
+//       zipCode,
+//       role,
+//       password,
+//       businessType
+//     } = req.body;
+
+//     // Validate required fields
+//     const missingFields = [];
+//     if (!companyName) missingFields.push('companyName');
+//     if (!contactPerson) missingFields.push('contactPerson');
+//     if (!email) missingFields.push('email');
+//     if (!phone) missingFields.push('phone');
+//     if (!country) missingFields.push('country');
+//     if (!address) missingFields.push('address');
+//     if (!city) missingFields.push('city');
+//     if (!zipCode) missingFields.push('zipCode');
+//     if (!password) missingFields.push('password');
+
+//     if (missingFields.length > 0) {
+//       return res.status(400).json({
+//         success: false,
+//         error: `Missing required fields: ${missingFields.join(', ')}`
+//       });
+//     }
+
+//     // Validate email format
+//     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//     if (!emailRegex.test(email)) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'Please provide a valid email address'
+//       });
+//     }
+
+//     // Validate password strength
+//     if (password.length < 8) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'Password must be at least 8 characters long'
+//       });
+//     }
+
+//     // Check if user already exists
+//     const userExists = await User.findOne({ email: email.toLowerCase() });
+//     if (userExists) {
+//       // If user exists but not verified, delete old record
+//       if (userExists.registrationStatus === 'pending') {
+//         await User.deleteOne({ _id: userExists._id });
+//         console.log('🗑️ Deleted unverified user:', email);
+//       } else {
+//         return res.status(400).json({
+//           success: false,
+//           error: 'User with this email already exists'
+//         });
+//       }
+//     }
+
+//     // Generate OTP
+//     const otp = generateOTP();
+//     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+//     // Hash password
+//     const salt = await bcrypt.genSalt(10);
+//     const hashedPassword = await bcrypt.hash(password, salt);
+
+//     // Create new user with pending status
+//     const user = new User({
+//       companyName,
+//       contactPerson,
+//       email: email.toLowerCase(),
+//       phone,
+//       whatsapp: whatsapp || '',
+//       country,
+//       address,
+//       city,
+//       zipCode,
+//       role: role || 'customer',
+//       password: hashedPassword,
+//       businessType: businessType || 'Retailer',
+//       isActive: false,
+//       emailVerified: false,
+//       registrationStatus: 'pending',
+//       otp: otp,
+//       otpExpiry: otpExpiry
+//     });
+
+//     // Save user
+//     await user.save();
+
+//     // Send OTP email
+//     try {
+//       await sendOTPEmail(email, otp, companyName);
+//     } catch (emailError) {
+//       // If email fails, delete the user and return error
+//       await User.deleteOne({ _id: user._id });
+//       return res.status(500).json({
+//         success: false,
+//         error: 'Failed to send verification email. Please try again.'
+//       });
+//     }
+
+//     console.log('✅ OTP sent successfully to:', email);
+
+//     res.status(201).json({
+//       success: true,
+//       message: 'Registration initiated! Please verify your email with the OTP sent.',
+//       email: email,
+//       requiresOTP: true
+//     });
+
+//   } catch (error) {
+//     console.error('❌ Registration error:', error);
+    
+//     if (error.code === 11000) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'Email already exists'
+//       });
+//     }
+
+//     if (error.name === 'ValidationError') {
+//       const messages = Object.values(error.errors).map(val => val.message);
+//       return res.status(400).json({
+//         success: false,
+//         error: messages.join(', ')
+//       });
+//     }
+
+//     res.status(500).json({
+//       success: false,
+//       error: error.message || 'Server error during registration'
+//     });
+//   }
+// };
 const registerUser = async (req, res) => {
   try {
-    console.log('📝 Registration request received');
+    const { 
+      companyName, 
+      contactPerson, 
+      email, 
+      phone, 
+      whatsapp, 
+      country, 
+      address, 
+      city, 
+      zipCode, 
+      password,
+      role = 'customer' 
+    } = req.body;
 
-    const {
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        error: 'User already exists with this email'
+      });
+    }
+
+    // Hash the password BEFORE saving
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Generate OTP
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Create user with hashed password
+    const user = await User.create({
       companyName,
       contactPerson,
       email,
@@ -180,136 +357,31 @@ const registerUser = async (req, res) => {
       address,
       city,
       zipCode,
+      password: hashedPassword, // Use the hashed password here
       role,
-      password,
-      businessType
-    } = req.body;
-
-    // Validate required fields
-    const missingFields = [];
-    if (!companyName) missingFields.push('companyName');
-    if (!contactPerson) missingFields.push('contactPerson');
-    if (!email) missingFields.push('email');
-    if (!phone) missingFields.push('phone');
-    if (!country) missingFields.push('country');
-    if (!address) missingFields.push('address');
-    if (!city) missingFields.push('city');
-    if (!zipCode) missingFields.push('zipCode');
-    if (!password) missingFields.push('password');
-
-    if (missingFields.length > 0) {
-      return res.status(400).json({
-        success: false,
-        error: `Missing required fields: ${missingFields.join(', ')}`
-      });
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Please provide a valid email address'
-      });
-    }
-
-    // Validate password strength
-    if (password.length < 8) {
-      return res.status(400).json({
-        success: false,
-        error: 'Password must be at least 8 characters long'
-      });
-    }
-
-    // Check if user already exists
-    const userExists = await User.findOne({ email: email.toLowerCase() });
-    if (userExists) {
-      // If user exists but not verified, delete old record
-      if (userExists.registrationStatus === 'pending') {
-        await User.deleteOne({ _id: userExists._id });
-        console.log('🗑️ Deleted unverified user:', email);
-      } else {
-        return res.status(400).json({
-          success: false,
-          error: 'User with this email already exists'
-        });
-      }
-    }
-
-    // Generate OTP
-    const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create new user with pending status
-    const user = new User({
-      companyName,
-      contactPerson,
-      email: email.toLowerCase(),
-      phone,
-      whatsapp: whatsapp || '',
-      country,
-      address,
-      city,
-      zipCode,
-      role: role || 'customer',
-      password: hashedPassword,
-      businessType: businessType || 'Retailer',
-      isActive: false,
-      emailVerified: false,
+      otp,
+      otpExpiry,
       registrationStatus: 'pending',
-      otp: otp,
-      otpExpiry: otpExpiry
+      emailVerified: false
     });
 
-    // Save user
-    await user.save();
-
     // Send OTP email
-    try {
-      await sendOTPEmail(email, otp, companyName);
-    } catch (emailError) {
-      // If email fails, delete the user and return error
-      await User.deleteOne({ _id: user._id });
-      return res.status(500).json({
-        success: false,
-        error: 'Failed to send verification email. Please try again.'
-      });
-    }
-
-    console.log('✅ OTP sent successfully to:', email);
+    await sendOTPEmail(email, otp, companyName);
 
     res.status(201).json({
       success: true,
-      message: 'Registration initiated! Please verify your email with the OTP sent.',
-      email: email,
-      requiresOTP: true
+      message: 'Registration initiated. Please check your email for OTP.',
+      data: {
+        email: user.email,
+        companyName: user.companyName
+      }
     });
 
   } catch (error) {
-    console.error('❌ Registration error:', error);
-    
-    if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        error: 'Email already exists'
-      });
-    }
-
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(val => val.message);
-      return res.status(400).json({
-        success: false,
-        error: messages.join(', ')
-      });
-    }
-
+    console.error('Registration error:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Server error during registration'
+      error: error.message || 'Registration failed'
     });
   }
 };

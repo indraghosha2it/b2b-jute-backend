@@ -1129,6 +1129,15 @@ const submitInquiry = async (req, res) => {
       subtotal: inquiry.subtotal
     }, null, 2));
 
+     try {
+      console.log('📧 SENDING EMAIL NOTIFICATIONS...');
+      const emailResult = await sendInquirySubmissionEmails(inquiry, userDetails);
+      console.log('📧 Email result:', emailResult);
+    } catch (emailError) {
+      console.error('❌ Email sending failed:', emailError.message);
+      // Don't fail the request if email fails
+    }
+
     // Clear the cart after successful submission
     cart.items = [];
     cart.totalItems = 0;
