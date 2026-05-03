@@ -556,6 +556,9 @@ const getAllInvoices = async (req, res) => {
 
 // @route   GET /api/invoices/all
 // @access  Private/Admin
+// @desc    Get all invoices without pagination (for stats)
+// @route   GET /api/invoices/all
+// @access  Private/Admin
 const getAllInvoicesForStats = async (req, res) => {
   try {
     const { year, month } = req.query;
@@ -576,7 +579,7 @@ const getAllInvoicesForStats = async (req, res) => {
     }
 
     const invoices = await Invoice.find(filter)
-      .select('invoiceNumber paymentStatus finalTotal amountPaid dueDate invoiceDate')
+      .select('invoiceNumber paymentStatus finalTotal amountPaid dueDate invoiceDate customer')
       .sort({ invoiceDate: -1 });
 
     res.json({

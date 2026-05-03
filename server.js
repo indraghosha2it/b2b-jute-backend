@@ -22,6 +22,7 @@ const moderatorInquiryRoutes = require('./src/routes/moderatorInquiryRoutes');
 const searchRoutes = require('./src/routes/searchRoutes');
 const contactRoutes = require('./src/routes/contactRoutes');
 const promotionalRoutes = require('./src/routes/promotionalRoutes');
+const certificationRoutes = require('./src/routes/certificationRoutes');
 
 // Initialize Express app
 const app = express();
@@ -112,6 +113,7 @@ app.use('/api/moderator/inquiries', moderatorInquiryRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api', promotionalRoutes);
+app.use('/api/certifications', certificationRoutes);
 
 // Basic test route
 app.get('/api/test', (req, res) => {

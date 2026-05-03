@@ -1707,7 +1707,7 @@ const addInternalNote = async (req, res) => {
   }
 };
 
-// const getDashboardStats = async (req, res) => {
+
 //   try {
 //     const now = new Date();
 //     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1868,9 +1868,7 @@ const addInternalNote = async (req, res) => {
 // @access  Private/Admin
 
 
-// @desc    Get dashboard stats
-// @route   GET /api/admin/inquiries/stats/dashboard
-// @access  Private/Admin
+
 // @desc    Get dashboard stats
 // @route   GET /api/admin/inquiries/stats/dashboard
 // @access  Private/Admin
@@ -1881,166 +1879,63 @@ const getDashboardStats = async (req, res) => {
   try {
     const { month, year } = req.query;
     
-    let inquiryQuery = {}; // Empty for ALL data
-    let invoiceQuery = {}; // Empty for ALL data
+    // Build date filters
+    let inquiryQuery = {};
+    let invoiceQuery = {};
     let hasDateFilter = false;
     
-    // Only apply date filters if month/year are provided
     if (month && year) {
       hasDateFilter = true;
-      // Filter by specific month and year
-      const startDate = new Date(year, month - 1, 1); // month is 1-12 from frontend
-      const endDate = new Date(year, month, 0, 23, 59, 59); // Last day of month
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 0, 23, 59, 59);
       
-      console.log('Filtering by month/year:', { startDate, endDate });
-      
-      inquiryQuery = {
-        createdAt: { $gte: startDate, $lte: endDate }
-      };
-
-      invoiceQuery = {
-        invoiceDate: { $gte: startDate, $lte: endDate }
-      };
+      inquiryQuery = { createdAt: { $gte: startDate, $lte: endDate } };
+      invoiceQuery = { invoiceDate: { $gte: startDate, $lte: endDate } };
     } else if (year && !month) {
       hasDateFilter = true;
-      // Filter by specific year
       const startDate = new Date(year, 0, 1);
       const endDate = new Date(year, 11, 31, 23, 59, 59);
       
-      console.log('Filtering by year:', { startDate, endDate });
-      
-      inquiryQuery = {
-        createdAt: { $gte: startDate, $lte: endDate }
-      };
-
-      invoiceQuery = {
-        invoiceDate: { $gte: startDate, $lte: endDate }
-      };
-    } else {
-      // NO FILTERS - return ALL data
-      console.log('No date filters - returning ALL data');
-      // Keep queries as empty objects {} to get all documents
+      inquiryQuery = { createdAt: { $gte: startDate, $lte: endDate } };
+      invoiceQuery = { invoiceDate: { $gte: startDate, $lte: endDate } };
     }
 
-    console.log('Query:', { 
+    console.log('Dashboard Stats Query:', { 
       hasDateFilter, 
       inquiryQuery: Object.keys(inquiryQuery).length ? inquiryQuery : 'ALL',
       invoiceQuery: Object.keys(invoiceQuery).length ? invoiceQuery : 'ALL'
     });
 
-    const [
-      totalInquiries,
-      pendingQuotations,
-      unpaidInvoicesCount,
-      partialInvoicesCount,
-      overpaidInvoicesCount,
-      cancelledInvoicesCount,
-      totalRevenue,
-      recentInquiries,
-      statusBreakdown,
-      totalInvoices,
-      paidInvoicesCount,
-      allInvoicesInPeriod
-    ] = await Promise.all([
-      // Total inquiries (ALL if no filters)
-      Inquiry.countDocuments(inquiryQuery),
-      
-      // Pending quotations (submitted status)
-      Inquiry.countDocuments({ 
-        ...inquiryQuery,
-        status: 'submitted'
-      }),
-      
-      // Unpaid invoices
-      Invoice.countDocuments({ 
-        ...invoiceQuery,
-        paymentStatus: 'unpaid'
-      }),
-      
-      // Partial payment invoices
-      Invoice.countDocuments({ 
-        ...invoiceQuery,
-        paymentStatus: 'partial'
-      }),
-      
-      // Overpaid invoices
-      Invoice.countDocuments({ 
-        ...invoiceQuery,
-        paymentStatus: 'overpaid'
-      }),
-      
-      // Cancelled invoices
-      Invoice.countDocuments({ 
-        ...invoiceQuery,
-        paymentStatus: 'cancelled'
-      }),
-      
-      // Total revenue from PAID invoices
-      Invoice.aggregate([
-        {
-          $match: {
-            ...invoiceQuery,
-            paymentStatus: 'paid'
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$finalTotal' }
-          }
-        }
-      ]),
-      
-      // Recent inquiries (LIMIT 5)
-      Inquiry.find(inquiryQuery)
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .select('inquiryNumber userDetails.companyName status subtotal createdAt items')
-        .lean(),
-      
-      // Status breakdown from inquiries
-      Inquiry.aggregate([
-        {
-          $match: inquiryQuery
-        },
-        {
-          $group: {
-            _id: '$status',
-            count: { $sum: 1 },
-            value: { $sum: '$subtotal' }
-          }
-        }
-      ]),
-      
-      // Total invoices count
-      Invoice.countDocuments(invoiceQuery),
-      
-      // Paid invoices count
-      Invoice.countDocuments({ 
-        ...invoiceQuery,
-        paymentStatus: 'paid'
-      }),
-      
-      // Get all invoices in the period for detailed status calculation
-      Invoice.find(invoiceQuery)
-        .select('paymentStatus finalTotal amountPaid dueDate invoiceDate')
-        .lean()
-    ]);
-
-    const totalRevenueAmount = totalRevenue[0]?.total || 0;
-
-    // Format status breakdown as object
-    const breakdownObj = {};
-    statusBreakdown.forEach(item => {
-      breakdownObj[item._id] = {
-        count: item.count,
-        value: item.value
+    // Get ALL inquiries for stats
+    const allInquiries = await Inquiry.find(inquiryQuery);
+    
+    // Calculate inquiry stats
+    const totalInquiries = allInquiries.length;
+    const pendingQuotations = allInquiries.filter(i => i.status === 'submitted').length;
+    
+    // Status breakdown for inquiries
+    const statusBreakdown = {};
+    ['submitted', 'quoted', 'accepted', 'invoiced', 'cancelled'].forEach(status => {
+      const filtered = allInquiries.filter(i => i.status === status);
+      statusBreakdown[status] = {
+        count: filtered.length,
+        value: filtered.reduce((sum, i) => sum + (i.subtotal || 0), 0)
       };
     });
 
-    // Calculate expired invoices from all invoices in the period
-    const expiredCount = allInvoicesInPeriod.filter(inv => {
-      // Don't count paid, cancelled, or overpaid as expired
+    // Get ALL invoices for stats
+    const allInvoices = await Invoice.find(invoiceQuery);
+    
+    // Calculate invoice stats
+    const totalInvoices = allInvoices.length;
+    const paidInvoices = allInvoices.filter(i => i.paymentStatus === 'paid').length;
+    const partialInvoices = allInvoices.filter(i => i.paymentStatus === 'partial').length;
+    const unpaidInvoices = allInvoices.filter(i => i.paymentStatus === 'unpaid').length;
+    const overpaidInvoices = allInvoices.filter(i => i.paymentStatus === 'overpaid').length;
+    const cancelledInvoices = allInvoices.filter(i => i.paymentStatus === 'cancelled').length;
+    
+    // Calculate expired invoices (due date passed and not paid)
+    const expiredInvoices = allInvoices.filter(inv => {
       if (inv.paymentStatus === 'paid' || inv.paymentStatus === 'cancelled' || inv.paymentStatus === 'overpaid') {
         return false;
       }
@@ -2051,83 +1946,89 @@ const getDashboardStats = async (req, res) => {
       return dueDate < today;
     }).length;
 
-    // Calculate pending value (sum of due amounts for unpaid/partial invoices)
-    const pendingValue = allInvoicesInPeriod.reduce((total, invoice) => {
-      if (invoice.paymentStatus === 'unpaid' || invoice.paymentStatus === 'partial') {
-        const dueAmount = invoice.finalTotal - (invoice.amountPaid || 0);
-        return total + dueAmount;
+    // Calculate monthly revenue (from paid invoices)
+    const paidInvoicesList = allInvoices.filter(i => i.paymentStatus === 'paid');
+    const monthlyRevenue = paidInvoicesList.reduce((sum, inv) => sum + (inv.finalTotal || 0), 0);
+    
+    // Calculate pending value (due amount from unpaid/partial invoices)
+    const pendingValue = allInvoices.reduce((total, inv) => {
+      if (inv.paymentStatus === 'unpaid') {
+        return total + (inv.finalTotal || 0);
+      } else if (inv.paymentStatus === 'partial') {
+        const dueAmount = (inv.finalTotal || 0) - (inv.amountPaid || 0);
+        return total + Math.max(0, dueAmount);
       }
       return total;
     }, 0);
 
-    // Recent invoices (LIMIT 5)
+    // Calculate revenue growth (compare with previous period)
+    let revenueGrowth = 0;
+    if (hasDateFilter && month && year) {
+      const prevMonthStart = new Date(year, month - 2, 1);
+      const prevMonthEnd = new Date(year, month - 1, 0, 23, 59, 59);
+      
+      const prevMonthInvoices = await Invoice.find({
+        paymentStatus: 'paid',
+        invoiceDate: { $gte: prevMonthStart, $lte: prevMonthEnd }
+      });
+      
+      const prevMonthRevenue = prevMonthInvoices.reduce((sum, inv) => sum + (inv.finalTotal || 0), 0);
+      revenueGrowth = prevMonthRevenue > 0 
+        ? ((monthlyRevenue - prevMonthRevenue) / prevMonthRevenue) * 100 
+        : 0;
+    }
+
+    // Get recent inquiries (last 5)
+    const recentInquiries = await Inquiry.find(inquiryQuery)
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select('inquiryNumber userDetails.companyName status subtotal createdAt totalItems')
+      .lean();
+
+    // Get recent invoices (last 5)
     const recentInvoices = await Invoice.find(invoiceQuery)
       .sort({ invoiceDate: -1 })
       .limit(5)
       .select('invoiceNumber customer.companyName paymentStatus finalTotal invoiceDate dueDate amountPaid')
       .lean();
 
-    // Calculate invoice status counts
-    const invoiceStatusCounts = {
-      paid: paidInvoicesCount,
-      partial: partialInvoicesCount,
-      unpaid: unpaidInvoicesCount,
-      overpaid: overpaidInvoicesCount,
-      cancelled: cancelledInvoicesCount,
-      expired: expiredCount,
-      total: totalInvoices
-    };
-
-    // Calculate revenue growth only if we have date filters
-    let revenueGrowth = 0;
-    if (hasDateFilter && month && year) {
-      // Calculate previous period for comparison
-      const prevMonthStart = new Date(year, month - 2, 1);
-      const prevMonthEnd = new Date(year, month - 1, 0, 23, 59, 59);
-      
-      const prevMonthRevenue = await Invoice.aggregate([
-        {
-          $match: {
-            paymentStatus: 'paid',
-            invoiceDate: { $gte: prevMonthStart, $lte: prevMonthEnd }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$finalTotal' }
-          }
-        }
-      ]);
-      
-      const prevMonthTotal = prevMonthRevenue[0]?.total || 0;
-      revenueGrowth = prevMonthTotal > 0 
-        ? ((totalRevenueAmount - prevMonthTotal) / prevMonthTotal) * 100 
-        : 0;
-    }
-
+    // Prepare response
     const responseData = {
       overview: {
         totalInquiries,
         pendingQuotations,
-        unpaidInvoices: unpaidInvoicesCount,
-        partialInvoices: partialInvoicesCount,
-        overpaidInvoices: overpaidInvoicesCount,
-        cancelledInvoices: cancelledInvoicesCount,
-        expiredInvoices: expiredCount,
-        monthlyRevenue: totalRevenueAmount,
+        unpaidInvoices,
+        partialInvoices,
+        overpaidInvoices,
+        cancelledInvoices,
+        expiredInvoices,
+        monthlyRevenue,
         revenueGrowth: Math.round(revenueGrowth * 100) / 100,
         totalInvoices,
-        paidInvoices: paidInvoicesCount,
+        paidInvoices,
         pendingValue,
-        invoiceStatusCounts
+        invoiceStatusCounts: {
+          paid: paidInvoices,
+          partial: partialInvoices,
+          unpaid: unpaidInvoices,
+          overpaid: overpaidInvoices,
+          cancelled: cancelledInvoices,
+          expired: expiredInvoices,
+          total: totalInvoices
+        }
       },
       recentInquiries,
       recentInvoices,
-      statusBreakdown: breakdownObj
+      statusBreakdown
     };
 
-    console.log('Dashboard stats response:', JSON.stringify(responseData, null, 2));
+    console.log('Dashboard Stats Response:', {
+      totalInquiries,
+      totalInvoices,
+      monthlyRevenue,
+      pendingValue,
+      revenueGrowth
+    });
 
     res.json({
       success: true,
