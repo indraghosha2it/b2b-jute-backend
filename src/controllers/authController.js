@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const bcrypt = require('bcryptjs'); // ADDED MISSING IMPORT
 const { generateOTP, sendOTPEmail } = require('../utils/emailOtpService');
 const { generateOTP: generateResetOTP, sendPasswordResetOTP } = require('../utils/forgetPasswordOtpService');
+const { sendSubscriptionConfirmationEmail, sendUnsubscribeConfirmationEmail } = require('../utils/subscriptionEmailService');
 const { sendWelcomeEmail, sendGoogleWelcomeEmail } = require('../utils/welcomeEmailService');// Add these imports at the top
 const admin = require('../config/firebaseAdmin');
 
@@ -1892,6 +1893,125 @@ const adminCreateCustomer = async (req, res) => {
   }
 };
 
+// controllers/authController.js - Add these functions
+
+// @desc    Subscribe to newsletter
+// @route   POST /api/auth/subscribe
+// @access  Private
+// Add this import at the top of authController.js
+
+// Update your subscribeToNewsletter function:
+const subscribeToNewsletter = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    if (user.isSubscribedToNewsletter) {
+      return res.status(400).json({
+        success: false,
+        error: 'Already subscribed to newsletter'
+      });
+    }
+
+    user.isSubscribedToNewsletter = true;
+    user.newsletterSubscriptionDate = new Date();
+    await user.save();
+
+    // 🆕 SEND SUBSCRIPTION CONFIRMATION EMAIL
+    const emailName = user.companyName || user.contactPerson || user.email.split('@')[0];
+    sendSubscriptionConfirmationEmail(user.email, emailName)
+      .catch(err => console.error('Background subscription email failed:', err));
+
+    res.json({
+      success: true,
+      message: 'Successfully subscribed to newsletter!',
+      isSubscribed: true
+    });
+
+  } catch (error) {
+    console.error('Subscribe error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to subscribe'
+    });
+  }
+};
+
+// Update your unsubscribeFromNewsletter function:
+const unsubscribeFromNewsletter = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    if (!user.isSubscribedToNewsletter) {
+      return res.status(400).json({
+        success: false,
+        error: 'Not subscribed to newsletter'
+      });
+    }
+
+    user.isSubscribedToNewsletter = false;
+    user.newsletterSubscriptionDate = null;
+    await user.save();
+
+    // 🆕 SEND UNSUBSCRIBE CONFIRMATION EMAIL
+    const emailName = user.companyName || user.contactPerson || user.email.split('@')[0];
+    sendUnsubscribeConfirmationEmail(user.email, emailName)
+      .catch(err => console.error('Background unsubscribe email failed:', err));
+
+    res.json({
+      success: true,
+      message: 'Successfully unsubscribed from newsletter',
+      isSubscribed: false
+    });
+
+  } catch (error) {
+    console.error('Unsubscribe error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to unsubscribe'
+    });
+  }
+};
+
+// @desc    Get subscription status
+// @route   GET /api/auth/subscription-status
+// @access  Private
+const getSubscriptionStatus = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    
+    res.json({
+      success: true,
+      isSubscribed: user?.isSubscribedToNewsletter || false,
+      subscribedSince: user?.newsletterSubscriptionDate || null
+    });
+
+  } catch (error) {
+    console.error('Get subscription status error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get subscription status'
+    });
+  }
+};
+
+// Don't forget to EXPORT these functions at the bottom
+
+
+
 
 
 // @desc    Logout user
@@ -1922,5 +2042,9 @@ module.exports = {
   checkProfileStatus,
   googleSignup,
   adminCreateCustomer,
-  logoutUser
+  logoutUser,
+
+  subscribeToNewsletter,
+  unsubscribeFromNewsletter,
+  getSubscriptionStatus
 };

@@ -54,7 +54,11 @@ const {
   logoutUser,
   googleSignup,
   checkProfileStatus,
-  adminCreateCustomer
+  adminCreateCustomer,
+
+    subscribeToNewsletter,
+  unsubscribeFromNewsletter,
+  getSubscriptionStatus
 } = require('../controllers/authController');
 const { protect, authorize } = require('../middleware/authMiddleware');
 
@@ -72,7 +76,6 @@ router.post('/google', googleAuth);
 router.post('/complete-profile', protect, completeProfile);
 router.post('/google-signup', googleSignup);
 // Add this route with the other routes
-router.post('/admin/create-customer', protect, authorize('admin'), adminCreateCustomer);
 
 // Protected routes
 router.get('/me', protect, getMe);
@@ -81,7 +84,16 @@ router.put('/change-password', protect, changePassword);
 router.post('/logout', protect, logoutUser);
 router.get('/profile-status', protect, checkProfileStatus);
 
+
+
+// ADD THESE NEW SUBSCRIPTION ROUTES (Protected)
+router.post('/subscribe', protect, subscribeToNewsletter);
+router.post('/unsubscribe', protect, unsubscribeFromNewsletter);
+router.get('/subscription-status', protect, getSubscriptionStatus);
+
 // Admin only route
+router.post('/admin/create-customer', protect, authorize('admin'), adminCreateCustomer);
+
 router.get('/users', protect, authorize('admin'), (req, res) => {
   res.json({ message: 'Admin only route' });
 });
