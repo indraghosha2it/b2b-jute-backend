@@ -645,10 +645,9 @@ const deletePromotionalSetting = async (req, res) => {
 
 
 
-
 // @desc    Get public promotional data for frontend (returns ALL active settings sorted by latest)
 // @route   GET /api/promotional
-// @access  Public
+// @access  Public working
 // const getPublicPromotionalData = async (req, res) => {
 //   try {
 //     console.log('Fetching promotional settings for public...');
@@ -656,7 +655,7 @@ const deletePromotionalSetting = async (req, res) => {
 //     // Sort by createdAt in DESCENDING order (latest first)
 //     const settings = await PromotionalSetting.find({ isActive: true })
 //       .populate('productId')
-//       .sort({ createdAt: -1 }); // ← IMPORTANT: -1 means newest first
+//       .sort({ createdAt: -1 });
     
 //     console.log(`Found ${settings.length} active promotional settings`);
     
@@ -677,6 +676,10 @@ const deletePromotionalSetting = async (req, res) => {
 //       const product = setting.productId;
 //       if (!product) return null;
       
+//       // Debug log to verify showOnPages is being read
+//       console.log(`📌 Product: ${product.productName}`);
+//       console.log(`📌 showOnPages from DB:`, setting.showOnPages);
+      
 //       return {
 //         productId: product._id,
 //         productName: product.productName || 'Product Name',
@@ -692,11 +695,17 @@ const deletePromotionalSetting = async (req, res) => {
 //         additionalInfo: product.additionalInfo || [],
 //         intervals: setting.intervals,
 //         maxShows: setting.maxShows,
-//         createdAt: setting.createdAt // ← ADD createdAt field
+//         createdAt: setting.createdAt,
+//         showOnPages: setting.showOnPages || []  // ✅ CRITICAL: Include this field
 //       };
 //     }).filter(p => p !== null);
     
 //     const firstSetting = settings[0];
+    
+//     // Debug: Log the first product's showOnPages to verify
+//     if (formattedProducts[0]) {
+//       console.log('📤 Sending to frontend - showOnPages:', formattedProducts[0].showOnPages);
+//     }
     
 //     res.status(200).json({
 //       success: true,
@@ -716,15 +725,21 @@ const deletePromotionalSetting = async (req, res) => {
 //   }
 // };
 
+// controllers/promotionalSettingsController.js
+
 // @desc    Get public promotional data for frontend (returns ALL active settings sorted by latest)
 // @route   GET /api/promotional
 // @access  Public
+// controllers/promotionalSettingsController.js
+
 // @desc    Get public promotional data for frontend (returns ALL active settings sorted by latest)
 // @route   GET /api/promotional
 // @access  Public
 const getPublicPromotionalData = async (req, res) => {
   try {
+    const { categoryId } = req.query; // Get categoryId from query params
     console.log('Fetching promotional settings for public...');
+    console.log('Category filter:', categoryId);
     
     // Sort by createdAt in DESCENDING order (latest first)
     const settings = await PromotionalSetting.find({ isActive: true })
@@ -745,14 +760,20 @@ const getPublicPromotionalData = async (req, res) => {
       });
     }
     
-    // Format response for frontend
-    const formattedProducts = settings.map(setting => {
+    // Format products first
+    let formattedProducts = settings.map(setting => {
       const product = setting.productId;
       if (!product) return null;
       
-      // Debug log to verify showOnPages is being read
-      console.log(`📌 Product: ${product.productName}`);
-      console.log(`📌 showOnPages from DB:`, setting.showOnPages);
+      // Get category ID from product (handle both populated and non-populated)
+      let productCategoryId = null;
+      if (product.category) {
+        if (typeof product.category === 'object' && product.category._id) {
+          productCategoryId = product.category._id.toString();
+        } else if (typeof product.category === 'string') {
+          productCategoryId = product.category;
+        }
+      }
       
       return {
         productId: product._id,
@@ -770,22 +791,44 @@ const getPublicPromotionalData = async (req, res) => {
         intervals: setting.intervals,
         maxShows: setting.maxShows,
         createdAt: setting.createdAt,
-        showOnPages: setting.showOnPages || []  // ✅ CRITICAL: Include this field
+        showOnPages: setting.showOnPages || [],
+        categoryId: productCategoryId // Add categoryId to each product
       };
     }).filter(p => p !== null);
     
-    const firstSetting = settings[0];
-    
-    // Debug: Log the first product's showOnPages to verify
-    if (formattedProducts[0]) {
-      console.log('📤 Sending to frontend - showOnPages:', formattedProducts[0].showOnPages);
+    // Apply category filter if provided
+    let filteredProducts = formattedProducts;
+    if (categoryId) {
+      console.log(`Filtering products by category: ${categoryId}`);
+      filteredProducts = formattedProducts.filter(product => {
+        const matches = product.categoryId === categoryId;
+        console.log(`Product "${product.productName}" category ${product.categoryId} matches ${categoryId}: ${matches}`);
+        return matches;
+      });
+      console.log(`Filtered to ${filteredProducts.length} products for category ${categoryId}`);
     }
+    
+    // If no products match the category, return empty
+    if (filteredProducts.length === 0) {
+      console.log('No products found for this category');
+      return res.status(200).json({
+        success: true,
+        data: {
+          isActive: true,
+          products: [],
+          intervals: settings[0]?.intervals || [{ delay: 5 }, { delay: 15 }, { delay: 15 }],
+          maxShows: settings[0]?.maxShows || 3
+        }
+      });
+    }
+    
+    const firstSetting = settings[0];
     
     res.status(200).json({
       success: true,
       data: {
         isActive: true,
-        products: formattedProducts,
+        products: filteredProducts,
         intervals: firstSetting?.intervals || [{ delay: 5 }, { delay: 15 }, { delay: 15 }],
         maxShows: firstSetting?.maxShows || 3
       }
