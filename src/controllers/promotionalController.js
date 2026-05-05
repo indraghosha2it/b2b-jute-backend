@@ -311,6 +311,29 @@ const Product = require('../models/Product');
 // @desc    Get all promotional settings (multiple documents)
 // @route   GET /api/promotional-settings
 // @access  Private (Admin only)
+// const getAllPromotionalSettings = async (req, res) => {
+//   try {
+//     console.log('Fetching all promotional settings...');
+//     const settings = await PromotionalSetting.find()
+//       .populate('productId')
+//       .sort({ order: 1, createdAt: -1 });
+    
+//     console.log(`Found ${settings.length} promotional settings`);
+    
+//     res.status(200).json({
+//       success: true,
+//       data: settings
+//     });
+//   } catch (error) {
+//     console.error('Error fetching promotional settings:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: error.message
+//     });
+//   }
+// };
+
+// Update getAllPromotionalSettings to ensure showOnPages is included in response
 const getAllPromotionalSettings = async (req, res) => {
   try {
     console.log('Fetching all promotional settings...');
@@ -320,6 +343,7 @@ const getAllPromotionalSettings = async (req, res) => {
     
     console.log(`Found ${settings.length} promotional settings`);
     
+    // The showOnPages is already in the schema, so it will be included automatically
     res.status(200).json({
       success: true,
       data: settings
@@ -363,11 +387,123 @@ const getPromotionalSettingById = async (req, res) => {
 // @desc    Create a new promotional setting
 // @route   POST /api/promotional-settings
 // @access  Private (Admin only)
+// const createPromotionalSetting = async (req, res) => {
+//   try {
+//     const { productId, tag, intervals, maxShows, isActive } = req.body;
+    
+//     console.log('Creating promotional setting for product:', productId);
+    
+//     // Validate product
+//     if (!productId) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'Product ID is required'
+//       });
+//     }
+    
+//     // Check if product already has a promotional setting
+//     const existingSetting = await PromotionalSetting.findOne({ productId });
+//     if (existingSetting) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'This product already has a promotional setting'
+//       });
+//     }
+    
+//     // Verify product exists
+//     const productExists = await Product.findById(productId);
+//     if (!productExists) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'Product not found'
+//       });
+//     }
+    
+//     // Validate intervals
+//     if (!intervals || intervals.length === 0) {
+//       return res.status(400).json({
+//         success: false,
+//         error: 'At least one interval is required'
+//       });
+//     }
+    
+//     // Get count for order
+//     const count = await PromotionalSetting.countDocuments();
+    
+//     const setting = await PromotionalSetting.create({
+//       productId,
+//       tag: tag || 'Special Offer',
+//       intervals: intervals || [{ delay: 5 }, { delay: 15 }, { delay: 15 }],
+//       maxShows: maxShows || 3,
+//       isActive: isActive !== undefined ? isActive : true,
+//       order: count
+//     });
+    
+//     console.log('Promotional setting created:', setting._id);
+    
+//     const populatedSetting = await PromotionalSetting.findById(setting._id).populate('productId');
+    
+//     res.status(201).json({
+//       success: true,
+//       data: populatedSetting
+//     });
+//   } catch (error) {
+//     console.error('Error creating promotional setting:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: error.message
+//     });
+//   }
+// };
+
+// // @desc    Update a promotional setting
+// // @route   PUT /api/promotional-settings/:id
+// // @access  Private (Admin only)
+// const updatePromotionalSetting = async (req, res) => {
+//   try {
+//     const { tag, intervals, maxShows, isActive, order } = req.body;
+    
+//     const setting = await PromotionalSetting.findById(req.params.id);
+    
+//     if (!setting) {
+//       return res.status(404).json({
+//         success: false,
+//         error: 'Promotional setting not found'
+//       });
+//     }
+    
+//     // Update fields
+//     if (tag !== undefined) setting.tag = tag;
+//     if (intervals !== undefined) setting.intervals = intervals;
+//     if (maxShows !== undefined) setting.maxShows = maxShows;
+//     if (isActive !== undefined) setting.isActive = isActive;
+//     if (order !== undefined) setting.order = order;
+    
+//     await setting.save();
+    
+//     const populatedSetting = await PromotionalSetting.findById(setting._id).populate('productId');
+    
+//     res.status(200).json({
+//       success: true,
+//       data: populatedSetting
+//     });
+//   } catch (error) {
+//     console.error('Error updating promotional setting:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: error.message
+//     });
+//   }
+// };
+
+
+// Update createPromotionalSetting
 const createPromotionalSetting = async (req, res) => {
   try {
-    const { productId, tag, intervals, maxShows, isActive } = req.body;
+    const { productId, tag, intervals, maxShows, isActive, showOnPages } = req.body;
     
     console.log('Creating promotional setting for product:', productId);
+    console.log('Received showOnPages:', showOnPages); // Debug log
     
     // Validate product
     if (!productId) {
@@ -412,10 +548,12 @@ const createPromotionalSetting = async (req, res) => {
       intervals: intervals || [{ delay: 5 }, { delay: 15 }, { delay: 15 }],
       maxShows: maxShows || 3,
       isActive: isActive !== undefined ? isActive : true,
-      order: count
+      order: count,
+      showOnPages: showOnPages || []  // ✅ Save showOnPages
     });
     
     console.log('Promotional setting created:', setting._id);
+    console.log('Saved showOnPages:', setting.showOnPages);
     
     const populatedSetting = await PromotionalSetting.findById(setting._id).populate('productId');
     
@@ -432,12 +570,13 @@ const createPromotionalSetting = async (req, res) => {
   }
 };
 
-// @desc    Update a promotional setting
-// @route   PUT /api/promotional-settings/:id
-// @access  Private (Admin only)
+// Update updatePromotionalSetting
 const updatePromotionalSetting = async (req, res) => {
   try {
-    const { tag, intervals, maxShows, isActive, order } = req.body;
+    const { tag, intervals, maxShows, isActive, order, showOnPages } = req.body;
+    
+    console.log('Updating promotional setting:', req.params.id);
+    console.log('Received showOnPages:', showOnPages); // Debug log
     
     const setting = await PromotionalSetting.findById(req.params.id);
     
@@ -454,8 +593,11 @@ const updatePromotionalSetting = async (req, res) => {
     if (maxShows !== undefined) setting.maxShows = maxShows;
     if (isActive !== undefined) setting.isActive = isActive;
     if (order !== undefined) setting.order = order;
+    if (showOnPages !== undefined) setting.showOnPages = showOnPages; // ✅ Save showOnPages
     
     await setting.save();
+    
+    console.log('Updated showOnPages:', setting.showOnPages);
     
     const populatedSetting = await PromotionalSetting.findById(setting._id).populate('productId');
     
@@ -501,16 +643,20 @@ const deletePromotionalSetting = async (req, res) => {
   }
 };
 
-// @desc    Get public promotional data for frontend (returns all active settings)
+
+
+
+// @desc    Get public promotional data for frontend (returns ALL active settings sorted by latest)
 // @route   GET /api/promotional
 // @access  Public
 // const getPublicPromotionalData = async (req, res) => {
 //   try {
 //     console.log('Fetching promotional settings for public...');
     
+//     // Sort by createdAt in DESCENDING order (latest first)
 //     const settings = await PromotionalSetting.find({ isActive: true })
 //       .populate('productId')
-//       .sort({ order: 1 });
+//       .sort({ createdAt: -1 }); // ← IMPORTANT: -1 means newest first
     
 //     console.log(`Found ${settings.length} active promotional settings`);
     
@@ -526,7 +672,7 @@ const deletePromotionalSetting = async (req, res) => {
 //       });
 //     }
     
-//     // Format response for frontend - show ALL active promotions
+//     // Format response for frontend
 //     const formattedProducts = settings.map(setting => {
 //       const product = setting.productId;
 //       if (!product) return null;
@@ -544,13 +690,12 @@ const deletePromotionalSetting = async (req, res) => {
 //         sizes: product.sizes || [],
 //         quantityBasedPricing: product.quantityBasedPricing || [],
 //         additionalInfo: product.additionalInfo || [],
-//         // Use the intervals and maxShows from the first setting (or each product can have its own)
 //         intervals: setting.intervals,
-//         maxShows: setting.maxShows
+//         maxShows: setting.maxShows,
+//         createdAt: setting.createdAt // ← ADD createdAt field
 //       };
 //     }).filter(p => p !== null);
     
-//     // Use intervals and maxShows from the first active setting
 //     const firstSetting = settings[0];
     
 //     res.status(200).json({
@@ -571,7 +716,9 @@ const deletePromotionalSetting = async (req, res) => {
 //   }
 // };
 
-
+// @desc    Get public promotional data for frontend (returns ALL active settings sorted by latest)
+// @route   GET /api/promotional
+// @access  Public
 // @desc    Get public promotional data for frontend (returns ALL active settings sorted by latest)
 // @route   GET /api/promotional
 // @access  Public
@@ -582,7 +729,7 @@ const getPublicPromotionalData = async (req, res) => {
     // Sort by createdAt in DESCENDING order (latest first)
     const settings = await PromotionalSetting.find({ isActive: true })
       .populate('productId')
-      .sort({ createdAt: -1 }); // ← IMPORTANT: -1 means newest first
+      .sort({ createdAt: -1 });
     
     console.log(`Found ${settings.length} active promotional settings`);
     
@@ -603,6 +750,10 @@ const getPublicPromotionalData = async (req, res) => {
       const product = setting.productId;
       if (!product) return null;
       
+      // Debug log to verify showOnPages is being read
+      console.log(`📌 Product: ${product.productName}`);
+      console.log(`📌 showOnPages from DB:`, setting.showOnPages);
+      
       return {
         productId: product._id,
         productName: product.productName || 'Product Name',
@@ -618,11 +769,17 @@ const getPublicPromotionalData = async (req, res) => {
         additionalInfo: product.additionalInfo || [],
         intervals: setting.intervals,
         maxShows: setting.maxShows,
-        createdAt: setting.createdAt // ← ADD createdAt field
+        createdAt: setting.createdAt,
+        showOnPages: setting.showOnPages || []  // ✅ CRITICAL: Include this field
       };
     }).filter(p => p !== null);
     
     const firstSetting = settings[0];
+    
+    // Debug: Log the first product's showOnPages to verify
+    if (formattedProducts[0]) {
+      console.log('📤 Sending to frontend - showOnPages:', formattedProducts[0].showOnPages);
+    }
     
     res.status(200).json({
       success: true,
@@ -641,7 +798,6 @@ const getPublicPromotionalData = async (req, res) => {
     });
   }
 };
-
 module.exports = {
   getAllPromotionalSettings,
   getPromotionalSettingById,

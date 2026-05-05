@@ -1,14 +1,12 @@
+
+
 // const mongoose = require('mongoose');
 
-// const intervalSchema = new mongoose.Schema({
-//   delay: {
-//     type: Number,
-//     required: true,
-//     min: 0
-//   }
-// }, { _id: false });
-
-// const promotionalProductSchema = new mongoose.Schema({
+// const promotionalSettingSchema = new mongoose.Schema({
+//   isActive: {
+//     type: Boolean,
+//     default: true
+//   },
 //   productId: {
 //     type: mongoose.Schema.Types.ObjectId,
 //     ref: 'Product',
@@ -19,20 +17,14 @@
 //     required: true,
 //     trim: true
 //   },
-//   order: {
-//     type: Number,
-//     default: 0
-//   }
-// }, { _id: false });
-
-// const promotionalSettingSchema = new mongoose.Schema({
-//   isActive: {
-//     type: Boolean,
-//     default: true
-//   },
-//   products: [promotionalProductSchema],
 //   intervals: {
-//     type: [intervalSchema],
+//     type: [{
+//       delay: {
+//         type: Number,
+//         required: true,
+//         min: 0
+//       }
+//     }],
 //     default: [{ delay: 5 }, { delay: 15 }, { delay: 15 }]
 //   },
 //   maxShows: {
@@ -40,17 +32,48 @@
 //     default: 3,
 //     min: 1,
 //     max: 10
+//   },
+//   order: {
+//     type: Number,
+//     default: 0
+//   },
+//   createdAt: {
+//     type: Date,
+//     default: Date.now
+//   },
+//   updatedAt: {
+//     type: Date,
+//     default: Date.now
 //   }
 // }, {
 //   timestamps: true
 // });
 
-// // Add an index for better query performance
+// // Add index for better query performance
 // promotionalSettingSchema.index({ isActive: 1 });
+// promotionalSettingSchema.index({ order: 1 });
 
 // module.exports = mongoose.model('PromotionalSetting', promotionalSettingSchema);
 
+
+// models/PromotionalSetting.js
 const mongoose = require('mongoose');
+
+// Available pages list for reference
+const availablePages = [
+  '/',
+  '/products',
+  '/productDetails',
+  '/about',
+  '/contact',
+  '/blog',
+  '/blog/blogDetailsPage',
+  '/shipping',
+  '/privacy',
+  '/terms',
+  '/login',
+  '/register'
+];
 
 const promotionalSettingSchema = new mongoose.Schema({
   isActive: {
@@ -82,6 +105,14 @@ const promotionalSettingSchema = new mongoose.Schema({
     default: 3,
     min: 1,
     max: 10
+  },
+  // NEW: Pages where this popup should show
+  showOnPages: {
+    type: [{
+      type: String,
+      enum: availablePages
+    }],
+    default: availablePages // By default, show on all pages
   },
   order: {
     type: Number,
