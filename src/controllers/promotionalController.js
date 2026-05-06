@@ -384,14 +384,16 @@ const getPromotionalSettingById = async (req, res) => {
   }
 };
 
-// @desc    Create a new promotional setting
-// @route   POST /api/promotional-settings
-// @access  Private (Admin only)
+
+
+
+// // Update createPromotionalSetting
 // const createPromotionalSetting = async (req, res) => {
 //   try {
-//     const { productId, tag, intervals, maxShows, isActive } = req.body;
+//     const { productId, tag, intervals, maxShows, isActive, showOnPages } = req.body;
     
 //     console.log('Creating promotional setting for product:', productId);
+//     console.log('Received showOnPages:', showOnPages); // Debug log
     
 //     // Validate product
 //     if (!productId) {
@@ -436,10 +438,12 @@ const getPromotionalSettingById = async (req, res) => {
 //       intervals: intervals || [{ delay: 5 }, { delay: 15 }, { delay: 15 }],
 //       maxShows: maxShows || 3,
 //       isActive: isActive !== undefined ? isActive : true,
-//       order: count
+//       order: count,
+//       showOnPages: showOnPages || []  // ✅ Save showOnPages
 //     });
     
 //     console.log('Promotional setting created:', setting._id);
+//     console.log('Saved showOnPages:', setting.showOnPages);
     
 //     const populatedSetting = await PromotionalSetting.findById(setting._id).populate('productId');
     
@@ -456,12 +460,13 @@ const getPromotionalSettingById = async (req, res) => {
 //   }
 // };
 
-// // @desc    Update a promotional setting
-// // @route   PUT /api/promotional-settings/:id
-// // @access  Private (Admin only)
+// // Update updatePromotionalSetting
 // const updatePromotionalSetting = async (req, res) => {
 //   try {
-//     const { tag, intervals, maxShows, isActive, order } = req.body;
+//     const { tag, intervals, maxShows, isActive, order, showOnPages } = req.body;
+    
+//     console.log('Updating promotional setting:', req.params.id);
+//     console.log('Received showOnPages:', showOnPages); // Debug log
     
 //     const setting = await PromotionalSetting.findById(req.params.id);
     
@@ -478,8 +483,11 @@ const getPromotionalSettingById = async (req, res) => {
 //     if (maxShows !== undefined) setting.maxShows = maxShows;
 //     if (isActive !== undefined) setting.isActive = isActive;
 //     if (order !== undefined) setting.order = order;
+//     if (showOnPages !== undefined) setting.showOnPages = showOnPages; // ✅ Save showOnPages
     
 //     await setting.save();
+    
+//     console.log('Updated showOnPages:', setting.showOnPages);
     
 //     const populatedSetting = await PromotionalSetting.findById(setting._id).populate('productId');
     
@@ -496,14 +504,14 @@ const getPromotionalSettingById = async (req, res) => {
 //   }
 // };
 
-
 // Update createPromotionalSetting
 const createPromotionalSetting = async (req, res) => {
   try {
-    const { productId, tag, intervals, maxShows, isActive, showOnPages } = req.body;
+    const { productId, tag, intervals, maxShows, isActive, showOnPages, categoryId } = req.body;
     
     console.log('Creating promotional setting for product:', productId);
-    console.log('Received showOnPages:', showOnPages); // Debug log
+    console.log('Received showOnPages:', showOnPages);
+    console.log('Received categoryId:', categoryId);
     
     // Validate product
     if (!productId) {
@@ -531,6 +539,19 @@ const createPromotionalSetting = async (req, res) => {
       });
     }
     
+    // If categoryId is provided, verify category exists
+    if (categoryId) {
+      const Category = require('../models/Category');
+      const categoryExists = await Category.findById(categoryId);
+      if (!categoryExists) {
+        return res.status(400).json({
+          success: false,
+          error: 'Category not found'
+        });
+      }
+    }
+    
+    
     // Validate intervals
     if (!intervals || intervals.length === 0) {
       return res.status(400).json({
@@ -549,13 +570,17 @@ const createPromotionalSetting = async (req, res) => {
       maxShows: maxShows || 3,
       isActive: isActive !== undefined ? isActive : true,
       order: count,
-      showOnPages: showOnPages || []  // ✅ Save showOnPages
+      showOnPages: showOnPages || [],
+      categoryId: categoryId || null // Save categoryId
     });
     
     console.log('Promotional setting created:', setting._id);
     console.log('Saved showOnPages:', setting.showOnPages);
+    console.log('Saved categoryId:', setting.categoryId);
     
-    const populatedSetting = await PromotionalSetting.findById(setting._id).populate('productId');
+    const populatedSetting = await PromotionalSetting.findById(setting._id)
+      .populate('productId')
+      .populate('categoryId', 'name'); // Populate category name
     
     res.status(201).json({
       success: true,
@@ -573,10 +598,11 @@ const createPromotionalSetting = async (req, res) => {
 // Update updatePromotionalSetting
 const updatePromotionalSetting = async (req, res) => {
   try {
-    const { tag, intervals, maxShows, isActive, order, showOnPages } = req.body;
+    const { tag, intervals, maxShows, isActive, order, showOnPages, categoryId } = req.body;
     
     console.log('Updating promotional setting:', req.params.id);
-    console.log('Received showOnPages:', showOnPages); // Debug log
+    console.log('Received showOnPages:', showOnPages);
+    console.log('Received categoryId:', categoryId);
     
     const setting = await PromotionalSetting.findById(req.params.id);
     
@@ -587,19 +613,37 @@ const updatePromotionalSetting = async (req, res) => {
       });
     }
     
+    // If categoryId is provided and different from current, verify category exists
+    if (categoryId !== undefined && categoryId !== setting.categoryId) {
+      if (categoryId) {
+        const Category = require('../models/Category');
+        const categoryExists = await Category.findById(categoryId);
+        if (!categoryExists) {
+          return res.status(400).json({
+            success: false,
+            error: 'Category not found'
+          });
+        }
+      }
+      setting.categoryId = categoryId || null;
+    }
+    
     // Update fields
     if (tag !== undefined) setting.tag = tag;
     if (intervals !== undefined) setting.intervals = intervals;
     if (maxShows !== undefined) setting.maxShows = maxShows;
     if (isActive !== undefined) setting.isActive = isActive;
     if (order !== undefined) setting.order = order;
-    if (showOnPages !== undefined) setting.showOnPages = showOnPages; // ✅ Save showOnPages
+    if (showOnPages !== undefined) setting.showOnPages = showOnPages;
     
     await setting.save();
     
     console.log('Updated showOnPages:', setting.showOnPages);
+    console.log('Updated categoryId:', setting.categoryId);
     
-    const populatedSetting = await PromotionalSetting.findById(setting._id).populate('productId');
+    const populatedSetting = await PromotionalSetting.findById(setting._id)
+      .populate('productId')
+      .populate('categoryId', 'name');
     
     res.status(200).json({
       success: true,
@@ -647,10 +691,12 @@ const deletePromotionalSetting = async (req, res) => {
 
 // @desc    Get public promotional data for frontend (returns ALL active settings sorted by latest)
 // @route   GET /api/promotional
-// @access  Public working
+// @access  Public
 // const getPublicPromotionalData = async (req, res) => {
 //   try {
+//     const { categoryId } = req.query; // Get categoryId from query params
 //     console.log('Fetching promotional settings for public...');
+//     console.log('Category filter:', categoryId);
     
 //     // Sort by createdAt in DESCENDING order (latest first)
 //     const settings = await PromotionalSetting.find({ isActive: true })
@@ -671,14 +717,20 @@ const deletePromotionalSetting = async (req, res) => {
 //       });
 //     }
     
-//     // Format response for frontend
-//     const formattedProducts = settings.map(setting => {
+//     // Format products first
+//     let formattedProducts = settings.map(setting => {
 //       const product = setting.productId;
 //       if (!product) return null;
       
-//       // Debug log to verify showOnPages is being read
-//       console.log(`📌 Product: ${product.productName}`);
-//       console.log(`📌 showOnPages from DB:`, setting.showOnPages);
+//       // Get category ID from product (handle both populated and non-populated)
+//       let productCategoryId = null;
+//       if (product.category) {
+//         if (typeof product.category === 'object' && product.category._id) {
+//           productCategoryId = product.category._id.toString();
+//         } else if (typeof product.category === 'string') {
+//           productCategoryId = product.category;
+//         }
+//       }
       
 //       return {
 //         productId: product._id,
@@ -696,22 +748,216 @@ const deletePromotionalSetting = async (req, res) => {
 //         intervals: setting.intervals,
 //         maxShows: setting.maxShows,
 //         createdAt: setting.createdAt,
-//         showOnPages: setting.showOnPages || []  // ✅ CRITICAL: Include this field
+//         showOnPages: setting.showOnPages || [],
+//         categoryId: productCategoryId // Add categoryId to each product
 //       };
 //     }).filter(p => p !== null);
     
-//     const firstSetting = settings[0];
-    
-//     // Debug: Log the first product's showOnPages to verify
-//     if (formattedProducts[0]) {
-//       console.log('📤 Sending to frontend - showOnPages:', formattedProducts[0].showOnPages);
+//     // Apply category filter if provided
+//     let filteredProducts = formattedProducts;
+//     if (categoryId) {
+//       console.log(`Filtering products by category: ${categoryId}`);
+//       filteredProducts = formattedProducts.filter(product => {
+//         const matches = product.categoryId === categoryId;
+//         console.log(`Product "${product.productName}" category ${product.categoryId} matches ${categoryId}: ${matches}`);
+//         return matches;
+//       });
+//       console.log(`Filtered to ${filteredProducts.length} products for category ${categoryId}`);
 //     }
+    
+//     // If no products match the category, return empty
+//     if (filteredProducts.length === 0) {
+//       console.log('No products found for this category');
+//       return res.status(200).json({
+//         success: true,
+//         data: {
+//           isActive: true,
+//           products: [],
+//           intervals: settings[0]?.intervals || [{ delay: 5 }, { delay: 15 }, { delay: 15 }],
+//           maxShows: settings[0]?.maxShows || 3
+//         }
+//       });
+//     }
+    
+//     const firstSetting = settings[0];
     
 //     res.status(200).json({
 //       success: true,
 //       data: {
 //         isActive: true,
-//         products: formattedProducts,
+//         products: filteredProducts,
+//         intervals: firstSetting?.intervals || [{ delay: 5 }, { delay: 15 }, { delay: 15 }],
+//         maxShows: firstSetting?.maxShows || 3
+//       }
+//     });
+//   } catch (error) {
+//     console.error('Error fetching public promotional data:', error);
+//     res.status(500).json({
+//       success: false,
+//       error: error.message
+//     });
+//   }
+// };
+
+
+
+// controllers/promotionalSettingsController.js work for category
+
+// const getPublicPromotionalData = async (req, res) => {
+//   try {
+//     const { categoryId } = req.query;
+//     const { isProductDetailsPage } = req.query;
+    
+//     console.log('========================================');
+//     console.log('🎯 Fetching promotional data');
+//     console.log('Category filter from query:', categoryId);
+//     console.log('Is product details page:', isProductDetailsPage);
+//     console.log('========================================');
+    
+//     // Get all active promotional settings
+//     const settings = await PromotionalSetting.find({ isActive: true })
+//       .populate('productId')
+//       .populate('categoryId', 'name')
+//       .sort({ createdAt: -1 });
+    
+//     console.log(`Found ${settings.length} active promotional settings`);
+    
+//     // Debug: Log each setting
+//     settings.forEach((setting, idx) => {
+//       console.log(`\n📌 Setting ${idx + 1}:`);
+//       console.log(`   - Product: ${setting.productId?.productName}`);
+//       console.log(`   - Promo Category ID (setting.categoryId): ${setting.categoryId?._id || setting.categoryId}`);
+//       console.log(`   - Promo Category Name: ${setting.categoryId?.name}`);
+//     });
+    
+//     if (!settings || settings.length === 0) {
+//       return res.status(200).json({
+//         success: true,
+//         data: {
+//           isActive: false,
+//           products: [],
+//           intervals: [],
+//           maxShows: 0
+//         }
+//       });
+//     }
+    
+//     // Format products with their associated data
+//     let formattedProducts = settings.map(setting => {
+//       const product = setting.productId;
+//       if (!product) {
+//         console.log(`⚠️ Setting has no product`);
+//         return null;
+//       }
+      
+//       // IMPORTANT: Get the target category ID from the promotional setting
+//       // This is the category that will trigger this promo
+//       let targetCategoryId = null;
+//       if (setting.categoryId) {
+//         // Handle both populated and unpopulated categoryId
+//         targetCategoryId = setting.categoryId._id ? setting.categoryId._id.toString() : setting.categoryId.toString();
+//       }
+      
+//       console.log(`\n📦 Product: ${product.productName}`);
+//       console.log(`   This promo will show when user views category: ${targetCategoryId}`);
+//       console.log(`   Promo Category Name: ${setting.categoryId?.name || 'None'}`);
+      
+//       return {
+//         productId: product._id,
+//         productName: product.productName || 'Product Name',
+//         pricePerUnit: product.pricePerUnit || 0,
+//         images: product.images || [],
+//         fabric: product.fabric || 'Premium Quality',
+//         moq: product.moq || 1,
+//         orderUnit: product.orderUnit || 'piece',
+//         tag: setting.tag || 'Special Offer',
+//         colors: product.colors || [],
+//         sizes: product.sizes || [],
+//         quantityBasedPricing: product.quantityBasedPricing || [],
+//         additionalInfo: product.additionalInfo || [],
+//         intervals: setting.intervals,
+//         maxShows: setting.maxShows,
+//         createdAt: setting.createdAt,
+//         showOnPages: setting.showOnPages || [],
+//         // The category that triggers this promo
+//         triggerCategoryId: targetCategoryId,
+//         triggerCategoryName: setting.categoryId?.name || null
+//       };
+//     }).filter(p => p !== null);
+    
+//     console.log(`\n📊 Formatted ${formattedProducts.length} active promotional products`);
+    
+//     // Apply category filter logic
+//     let filteredProducts = [];
+    
+//     if (categoryId && isProductDetailsPage === 'true') {
+//       // PRODUCT DETAILS PAGE: Show promos where triggerCategoryId matches the product's category
+//       console.log(`\n🔍 Product Details Page - Looking for promos that trigger for category: ${categoryId}`);
+      
+//       filteredProducts = formattedProducts.filter(product => {
+//         const shouldShow = product.triggerCategoryId === categoryId;
+//         if (shouldShow) {
+//           console.log(`✅ WILL SHOW: ${product.productName} (triggers for category: ${product.triggerCategoryName})`);
+//         } else {
+//           console.log(`❌ WILL NOT SHOW: ${product.productName} (triggers for category: ${product.triggerCategoryName})`);
+//         }
+//         return shouldShow;
+//       });
+      
+//       console.log(`\n📊 Found ${filteredProducts.length} promotional products for category ${categoryId}`);
+      
+//     } else if (categoryId && isProductDetailsPage !== 'true') {
+//       // PRODUCTS LISTING PAGE with category filter
+//       console.log(`\n🔍 Products Page with category filter: ${categoryId}`);
+      
+//       filteredProducts = formattedProducts.filter(product => {
+//         const shouldShow = product.triggerCategoryId === categoryId;
+//         if (shouldShow) {
+//           console.log(`✅ WILL SHOW: ${product.productName} (triggers for category: ${product.triggerCategoryName})`);
+//         }
+//         return shouldShow;
+//       });
+      
+//     } else {
+//       // NO CATEGORY FILTER - Show promos with no trigger category
+//       console.log('\n🔍 No category filter - showing promos with no category restriction');
+      
+//       filteredProducts = formattedProducts.filter(product => {
+//         const hasNoTriggerCategory = !product.triggerCategoryId;
+//         if (hasNoTriggerCategory) {
+//           console.log(`✅ WILL SHOW: ${product.productName} (no category restriction)`);
+//         } else {
+//           console.log(`❌ WILL NOT SHOW: ${product.productName} (only triggers for category: ${product.triggerCategoryName})`);
+//         }
+//         return hasNoTriggerCategory;
+//       });
+//     }
+    
+//     if (filteredProducts.length === 0) {
+//       console.log('⚠️ No promotional products found for this filter');
+//       return res.status(200).json({
+//         success: true,
+//         data: {
+//           isActive: true,
+//           products: [],
+//           intervals: settings[0]?.intervals || [{ delay: 5 }, { delay: 15 }, { delay: 15 }],
+//           maxShows: settings[0]?.maxShows || 3
+//         }
+//       });
+//     }
+    
+//     console.log(`\n✅ Returning ${filteredProducts.length} products:`);
+//     filteredProducts.forEach(p => {
+//       console.log(`   - ${p.productName} (triggers for category: ${p.triggerCategoryName || 'All Pages'})`);
+//     });
+    
+//     const firstSetting = settings[0];
+    
+//     res.status(200).json({
+//       success: true,
+//       data: {
+//         isActive: true,
+//         products: filteredProducts,
 //         intervals: firstSetting?.intervals || [{ delay: 5 }, { delay: 15 }, { delay: 15 }],
 //         maxShows: firstSetting?.maxShows || 3
 //       }
@@ -727,24 +973,22 @@ const deletePromotionalSetting = async (req, res) => {
 
 // controllers/promotionalSettingsController.js
 
-// @desc    Get public promotional data for frontend (returns ALL active settings sorted by latest)
-// @route   GET /api/promotional
-// @access  Public
-// controllers/promotionalSettingsController.js
-
-// @desc    Get public promotional data for frontend (returns ALL active settings sorted by latest)
-// @route   GET /api/promotional
-// @access  Public
 const getPublicPromotionalData = async (req, res) => {
   try {
-    const { categoryId } = req.query; // Get categoryId from query params
-    console.log('Fetching promotional settings for public...');
-    console.log('Category filter:', categoryId);
+    const { categoryId, isProductDetailsPage, path } = req.query;
     
-    // Sort by createdAt in DESCENDING order (latest first)
+    console.log('========================================');
+    console.log('🎯 Fetching promotional data');
+    console.log('Category filter from query:', categoryId);
+    console.log('Is product details page:', isProductDetailsPage);
+    console.log('Current path:', path);
+    console.log('========================================');
+    
+    // Get ALL active promotional settings, sorted by createdAt DESC (latest first)
     const settings = await PromotionalSetting.find({ isActive: true })
       .populate('productId')
-      .sort({ createdAt: -1 });
+      .populate('categoryId', 'name')
+      .sort({ createdAt: -1 }); // Latest first
     
     console.log(`Found ${settings.length} active promotional settings`);
     
@@ -760,19 +1004,35 @@ const getPublicPromotionalData = async (req, res) => {
       });
     }
     
-    // Format products first
+    // Log all settings for debugging
+    settings.forEach((setting, idx) => {
+      console.log(`\n📌 Setting ${idx + 1}:`);
+      console.log(`   - ID: ${setting._id}`);
+      console.log(`   - Product: ${setting.productId?.productName}`);
+      console.log(`   - Category restriction: ${setting.categoryId ? setting.categoryId.name : 'NONE (Show on all pages)'}`);
+      console.log(`   - Created At: ${setting.createdAt}`);
+      console.log(`   - Show On Pages: ${setting.showOnPages?.length ? setting.showOnPages.join(', ') : 'All pages'}`);
+    });
+    
+    // Format products with their associated data
     let formattedProducts = settings.map(setting => {
       const product = setting.productId;
-      if (!product) return null;
+      if (!product) {
+        console.log(`⚠️ Setting ${setting._id} has no product, skipping`);
+        return null;
+      }
       
-      // Get category ID from product (handle both populated and non-populated)
-      let productCategoryId = null;
-      if (product.category) {
-        if (typeof product.category === 'object' && product.category._id) {
-          productCategoryId = product.category._id.toString();
-        } else if (typeof product.category === 'string') {
-          productCategoryId = product.category;
-        }
+      // Get the target category ID from the promotional setting
+      let targetCategoryId = null;
+      if (setting.categoryId) {
+        targetCategoryId = setting.categoryId._id ? setting.categoryId._id.toString() : setting.categoryId.toString();
+      }
+      
+      // Get showOnPages (ensure it's an array)
+      let showOnPages = setting.showOnPages || [];
+      if (showOnPages.length === 0) {
+        // If empty array, treat as "show on all pages"
+        showOnPages = null;
       }
       
       return {
@@ -791,26 +1051,103 @@ const getPublicPromotionalData = async (req, res) => {
         intervals: setting.intervals,
         maxShows: setting.maxShows,
         createdAt: setting.createdAt,
-        showOnPages: setting.showOnPages || [],
-        categoryId: productCategoryId // Add categoryId to each product
+        showOnPages: showOnPages, // This will be null for "all pages"
+        triggerCategoryId: targetCategoryId,
+        triggerCategoryName: setting.categoryId?.name || null
       };
     }).filter(p => p !== null);
     
-    // Apply category filter if provided
-    let filteredProducts = formattedProducts;
-    if (categoryId) {
-      console.log(`Filtering products by category: ${categoryId}`);
-      filteredProducts = formattedProducts.filter(product => {
-        const matches = product.categoryId === categoryId;
-        console.log(`Product "${product.productName}" category ${product.categoryId} matches ${categoryId}: ${matches}`);
-        return matches;
+    console.log(`\n📊 Formatted ${formattedProducts.length} active promotional products`);
+    
+    // Step 1: Filter by category logic
+    let categoryFilteredProducts = [];
+    
+    if (categoryId && isProductDetailsPage === 'true') {
+      // PRODUCT DETAILS PAGE: Show promos where triggerCategoryId matches the product's category
+      console.log(`\n🔍 Product Details Page - Filtering for category: ${categoryId}`);
+      
+      categoryFilteredProducts = formattedProducts.filter(product => {
+        const shouldShow = product.triggerCategoryId === categoryId;
+        if (shouldShow) {
+          console.log(`✅ WILL SHOW (category match): ${product.productName}`);
+        } else if (!product.triggerCategoryId) {
+          console.log(`❌ WILL NOT SHOW: ${product.productName} (no category restriction - only shows on pages without category filter)`);
+        } else {
+          console.log(`❌ WILL NOT SHOW: ${product.productName} (triggers for different category: ${product.triggerCategoryName})`);
+        }
+        return shouldShow;
       });
-      console.log(`Filtered to ${filteredProducts.length} products for category ${categoryId}`);
+      
+      console.log(`📊 Found ${categoryFilteredProducts.length} products matching category ${categoryId}`);
+      
+    } else if (categoryId && isProductDetailsPage !== 'true') {
+      // PRODUCTS LISTING PAGE with category filter
+      console.log(`\n🔍 Products Page with category filter: ${categoryId}`);
+      
+      categoryFilteredProducts = formattedProducts.filter(product => {
+        const shouldShow = product.triggerCategoryId === categoryId;
+        if (shouldShow) {
+          console.log(`✅ WILL SHOW (category match): ${product.productName}`);
+        } else if (!product.triggerCategoryId) {
+          console.log(`❌ WILL NOT SHOW: ${product.productName} (no category restriction - only shows when no filter)`);
+        } else {
+          console.log(`❌ WILL NOT SHOW: ${product.productName} (triggers for different category)`);
+        }
+        return shouldShow;
+      });
+      
+    } else {
+      // NO CATEGORY FILTER - Show promos with NO trigger category only
+      console.log('\n🔍 No category filter - showing promos with NO category restriction');
+      
+      categoryFilteredProducts = formattedProducts.filter(product => {
+        const hasNoCategoryRestriction = !product.triggerCategoryId;
+        if (hasNoCategoryRestriction) {
+          console.log(`✅ WILL SHOW (no category restriction): ${product.productName}`);
+        } else {
+          console.log(`❌ WILL NOT SHOW: ${product.productName} (has category restriction: ${product.triggerCategoryName})`);
+        }
+        return hasNoCategoryRestriction;
+      });
     }
     
-    // If no products match the category, return empty
-    if (filteredProducts.length === 0) {
-      console.log('No products found for this category');
+    console.log(`\n📊 After category filtering: ${categoryFilteredProducts.length} products`);
+    
+    // Step 2: Filter by page (showOnPages) if path is provided
+    let finalProducts = categoryFilteredProducts;
+    
+    if (path && categoryFilteredProducts.length > 0) {
+      const currentPath = normalizePath(path);
+      console.log(`\n📍 Filtering by page: ${currentPath}`);
+      
+      finalProducts = categoryFilteredProducts.filter(product => {
+        // If showOnPages is null, show on all pages
+        if (!product.showOnPages) {
+          console.log(`✅ ${product.productName}: No page restrictions - showing`);
+          return true;
+        }
+        
+        // Check if current page is in allowed pages
+        const normalizedShowOnPages = product.showOnPages.map(page => normalizePath(page));
+        const isAllowed = normalizedShowOnPages.includes(currentPath);
+        
+        if (isAllowed) {
+          console.log(`✅ ${product.productName}: Allowed on ${currentPath} - showing`);
+        } else {
+          console.log(`❌ ${product.productName}: NOT allowed on ${currentPath} - hiding`);
+        }
+        
+        return isAllowed;
+      });
+      
+      console.log(`\n📊 After page filtering: ${finalProducts.length} of ${categoryFilteredProducts.length} products`);
+    }
+    
+    // Step 3: Ensure products are sorted by createdAt (latest first)
+    finalProducts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    if (finalProducts.length === 0) {
+      console.log('⚠️ No promotional products found after all filters');
       return res.status(200).json({
         success: true,
         data: {
@@ -822,17 +1159,28 @@ const getPublicPromotionalData = async (req, res) => {
       });
     }
     
+    console.log(`\n✅ Returning ${finalProducts.length} products (sorted by latest first):`);
+    finalProducts.forEach((p, idx) => {
+      console.log(`   ${idx + 1}. ${p.productName}`);
+      console.log(`      - Created: ${new Date(p.createdAt).toLocaleString()}`);
+      console.log(`      - Category Restriction: ${p.triggerCategoryName || 'None'}`);
+      console.log(`      - Page Restriction: ${p.showOnPages ? p.showOnPages.join(', ') : 'All pages'}`);
+    });
+    
+    // Get intervals and maxShows from the first product (they should be consistent)
+    // But if different products have different intervals, use the first one
     const firstSetting = settings[0];
     
     res.status(200).json({
       success: true,
       data: {
         isActive: true,
-        products: filteredProducts,
+        products: finalProducts,
         intervals: firstSetting?.intervals || [{ delay: 5 }, { delay: 15 }, { delay: 15 }],
         maxShows: firstSetting?.maxShows || 3
       }
     });
+    
   } catch (error) {
     console.error('Error fetching public promotional data:', error);
     res.status(500).json({
@@ -841,6 +1189,14 @@ const getPublicPromotionalData = async (req, res) => {
     });
   }
 };
+
+// Helper function to normalize paths
+function normalizePath(path) {
+  if (!path) return '/';
+  let normalized = path === '/' ? '/' : path.replace(/\/$/, '');
+  normalized = normalized.split('?')[0];
+  return normalized;
+}
 module.exports = {
   getAllPromotionalSettings,
   getPromotionalSettingById,

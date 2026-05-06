@@ -70,7 +70,7 @@ if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !pr
 const categoryStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'b2b-categories',
+    folder: 'jute-categories',
     allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
     transformation: [{ width: 500, height: 500, crop: 'limit' }]
   }
@@ -80,7 +80,7 @@ const categoryStorage = new CloudinaryStorage({
 const productStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'b2b-products',
+    folder: 'jute-products',
     allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
     transformation: [{ width: 1200, height: 1200, crop: 'limit' }]
   }

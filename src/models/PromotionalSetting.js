@@ -118,6 +118,12 @@ const promotionalSettingSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  categoryId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+    required: false,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -133,5 +139,6 @@ const promotionalSettingSchema = new mongoose.Schema({
 // Add index for better query performance
 promotionalSettingSchema.index({ isActive: 1 });
 promotionalSettingSchema.index({ order: 1 });
+promotionalSettingSchema.index({ categoryId: 1 });
 
 module.exports = mongoose.model('PromotionalSetting', promotionalSettingSchema);
