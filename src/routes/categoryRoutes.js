@@ -39,7 +39,6 @@ router.get('/:categoryId/subcategories/:subcategoryId/children/:childId', getChi
 
 router.use(protect); // This applies to all routes below
 
-// Moderators and Admins can create categories
 router.post('/', 
   isModeratorOrAdmin, // This allows both admin and moderator
   upload.single('image'), 

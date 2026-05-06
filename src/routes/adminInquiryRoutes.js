@@ -14,7 +14,7 @@ const {
   
 } = require('../controllers/inquiryController');
 
-// All routes require authentication AND admin role
+// All routes require authentication AND admin
 router.use(protect);
 router.use(isAdmin); // or use authorize('admin')
 
