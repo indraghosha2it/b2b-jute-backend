@@ -520,6 +520,8 @@ const JUTE_COLORS = {
   border: '#E5D5C0'
 };
 
+const TIMEZONE = 'Asia/Dhaka'; 
+
 // Create transporter
 const transporter = nodemailer.createTransport({
   host: process.env.INFO_SMTP_HOST,
@@ -555,7 +557,8 @@ const formatDate = (dateString) => {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
+     timeZone: TIMEZONE
   });
 };
 
@@ -566,7 +569,7 @@ const sendContactFormEmails = async (formData) => {
   console.log('📧 Sending contact form emails...');
   console.log('📧 Customer email:', formData.email);
   console.log('📧 Admin email:', process.env.INFO_EMAIL_FROM);
-  
+   console.log('🕐 Current time (Bangladesh):', formatDate(new Date()));
   try {
     const {
       name,
