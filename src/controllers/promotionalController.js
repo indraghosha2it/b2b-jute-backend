@@ -1191,11 +1191,21 @@ const getPublicPromotionalData = async (req, res) => {
 };
 
 // Helper function to normalize paths
+// function normalizePath(path) {
+//   if (!path) return '/';
+//   let normalized = path === '/' ? '/' : path.replace(/\/$/, '');
+//   normalized = normalized.split('?')[0];
+//   return normalized;
+// }
+
+
+// Helper function to normalize paths (CASE-INSENSITIVE)
 function normalizePath(path) {
   if (!path) return '/';
   let normalized = path === '/' ? '/' : path.replace(/\/$/, '');
   normalized = normalized.split('?')[0];
-  return normalized;
+  // IMPORTANT: Convert to lowercase for case-insensitive comparison
+  return normalized.toLowerCase();
 }
 module.exports = {
   getAllPromotionalSettings,
