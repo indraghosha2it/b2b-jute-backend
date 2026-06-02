@@ -61,6 +61,17 @@ const createProduct = async (req, res) => {
       });
     }
 
+      const existingProduct = await Product.findOne({ 
+      productName: { $regex: new RegExp(`^${productName}$`, 'i') } 
+    });
+
+    if (existingProduct) {
+      return res.status(400).json({
+        success: false,
+        error: `Product name "${productName}" already exists. Please use a different product name.`
+      });
+    }
+
     // Check if category exists
     const categoryExists = await Category.findById(category);
     if (!categoryExists) {
@@ -362,13 +373,35 @@ if (parsedSizes && parsedSizes.length > 0) {
       data: product,
       message: 'Product created successfully'
     });
-  } catch (error) {
-    console.error('Create product error:', error);
-    res.status(500).json({
+} catch (error) {
+  console.error('Create product error:', error);
+  
+  // Handle duplicate key error (MongoDB error code 11000)
+  if (error.code === 11000) {
+    // Check which field caused the duplicate key error
+    if (error.keyPattern && error.keyPattern.slug) {
+      return res.status(400).json({
+        success: false,
+        error: `Product name "${req.body.productName}" already exists. Please use a different product name.`
+      });
+    }
+    if (error.keyPattern && error.keyPattern.skuCode) {
+      return res.status(400).json({
+        success: false,
+        error: `SKU code already exists. Please try again.`
+      });
+    }
+    return res.status(400).json({
       success: false,
-      error: error.message || 'Server error while creating product'
+      error: 'Duplicate entry found. Please check your data and try again.'
     });
   }
+  
+  res.status(500).json({
+    success: false,
+    error: error.message || 'Server error while creating product'
+  });
+}
 };
 
 // Helper function to extract public ID from Cloudinary URL
