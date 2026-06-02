@@ -947,32 +947,58 @@ const processedColors = (item.colors || []).map(color => {
     const displayTotalQuantity = productAvailableTotal;
     const displayTotalValue = productAvailableSubtotal;
     
+    // html += `
+    //   <div style="margin-bottom: 25px; padding: 20px; background: ${BRAND_COLORS.neutral}; border-left: 4px solid ${hasUnavailableItems ? BRAND_COLORS.unavailable : BRAND_COLORS.accent}; border-radius: 8px;">
+    //     <!-- Product Header with Image -->
+    //     <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 15px;">
+    //       <img src="${productImage}" alt="${item.productName}" 
+    //            style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid ${BRAND_COLORS.border}; ${isProductUnavailable ? 'opacity: 0.5;' : ''}">
+    //       <div style="flex: 1;">
+    //         <h4 style="margin: 0 0 8px 0; color: ${BRAND_COLORS.textDark}; font-size: 18px; font-weight: 600; ${isProductUnavailable ? 'text-decoration: line-through; color: #999;' : ''}">
+    //           ${item.productName}
+    //           ${isProductUnavailable ? '<span style="margin-left: 10px; background: #dc3545; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">UNAVAILABLE</span>' : ''}
+    //         </h4>
+    //         <div style="margin: 5px 0;">
+    //           <span style="display: inline-block; background: ${BRAND_COLORS.secondary}; color: ${BRAND_COLORS.primary}; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;">
+    //             ${unitFullLabel}
+    //           </span>
+    //           <span style="display: inline-block; margin-left: 8px; color: ${BRAND_COLORS.textLight}; font-size: 12px;">
+    //             MOQ: ${item.moq} ${unitLabel}
+    //           </span>
+    //         </div>
+    //         <div style="margin: 10px 0;">
+    //           <strong>Total Available:</strong> ${displayTotalQuantity} ${unitLabel} | 
+    //           <strong>Total Value:</strong> ${formatPrice(displayTotalValue)}
+    //           ${hasUnavailableItems ? `<span style="margin-left: 10px; color: #dc3545;">⚠️ Some items are unavailable</span>` : ''}
+    //         </div>
+    //       </div>
+    //     </div>
     html += `
-      <div style="margin-bottom: 25px; padding: 20px; background: ${BRAND_COLORS.neutral}; border-left: 4px solid ${hasUnavailableItems ? BRAND_COLORS.unavailable : BRAND_COLORS.accent}; border-radius: 8px;">
-        <!-- Product Header with Image -->
-        <div style="display: flex; align-items: flex-start; gap: 20px; margin-bottom: 15px;">
-          <img src="${productImage}" alt="${item.productName}" 
-               style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid ${BRAND_COLORS.border}; ${isProductUnavailable ? 'opacity: 0.5;' : ''}">
-          <div style="flex: 1;">
-            <h4 style="margin: 0 0 8px 0; color: ${BRAND_COLORS.textDark}; font-size: 18px; font-weight: 600; ${isProductUnavailable ? 'text-decoration: line-through; color: #999;' : ''}">
-              ${item.productName}
-              ${isProductUnavailable ? '<span style="margin-left: 10px; background: #dc3545; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">UNAVAILABLE</span>' : ''}
-            </h4>
-            <div style="margin: 5px 0;">
-              <span style="display: inline-block; background: ${BRAND_COLORS.secondary}; color: ${BRAND_COLORS.primary}; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;">
-                ${unitFullLabel}
-              </span>
-              <span style="display: inline-block; margin-left: 8px; color: ${BRAND_COLORS.textLight}; font-size: 12px;">
-                MOQ: ${item.moq} ${unitLabel}
-              </span>
-            </div>
-            <div style="margin: 10px 0;">
-              <strong>Total Available:</strong> ${displayTotalQuantity} ${unitLabel} | 
-              <strong>Total Value:</strong> ${formatPrice(displayTotalValue)}
-              ${hasUnavailableItems ? `<span style="margin-left: 10px; color: #dc3545;">⚠️ Some items are unavailable</span>` : ''}
-            </div>
-          </div>
+  <div style="margin-bottom: 25px; padding: 20px; background: ${BRAND_COLORS.neutral}; border-left: 4px solid ${hasUnavailableItems ? BRAND_COLORS.unavailable : BRAND_COLORS.accent}; border-radius: 8px;">
+    <!-- Product Header with Image -->
+    <div style="display: flex; align-items: flex-start; gap: 30px; margin-bottom: 20px;">
+      <img src="${productImage}" alt="${item.productName}" 
+           style="width: 90px; height: 90px; object-fit: cover; border-radius: 10px; border: 1px solid ${BRAND_COLORS.border}; ${isProductUnavailable ? 'opacity: 0.5;' : ''}; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+      <div style="flex: 1;">
+        <h4 style="margin: 0 0 8px 0; color: ${BRAND_COLORS.textDark}; font-size: 18px; font-weight: 600; ${isProductUnavailable ? 'text-decoration: line-through; color: #999;' : ''}">
+          ${item.productName}
+          ${isProductUnavailable ? '<span style="margin-left: 10px; background: #dc3545; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">UNAVAILABLE</span>' : ''}
+        </h4>
+        <div style="margin: 5px 0;">
+          <span style="display: inline-block; background: ${BRAND_COLORS.secondary}; color: ${BRAND_COLORS.primary}; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;">
+            ${unitFullLabel}
+          </span>
+          <span style="display: inline-block; margin-left: 8px; color: ${BRAND_COLORS.textLight}; font-size: 12px;">
+            MOQ: ${item.moq} ${unitLabel}
+          </span>
         </div>
+        <div style="margin: 10px 0;">
+          <strong>Total Available:</strong> ${displayTotalQuantity} ${unitLabel} | 
+          <strong>Total Value:</strong> ${formatPrice(displayTotalValue)}
+          ${hasUnavailableItems ? `<span style="margin-left: 10px; color: #dc3545;">⚠️ Some items are unavailable</span>` : ''}
+        </div>
+      </div>
+    </div>
         
         <!-- Colors & Sizes Section with Unavailable Status -->
         <div style="margin-top: 15px;">
