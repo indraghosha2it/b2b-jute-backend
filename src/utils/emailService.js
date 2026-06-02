@@ -976,9 +976,9 @@ const processedColors = (item.colors || []).map(color => {
     html += `
   <div style="margin-bottom: 25px; padding: 20px; background: ${BRAND_COLORS.neutral}; border-left: 4px solid ${hasUnavailableItems ? BRAND_COLORS.unavailable : BRAND_COLORS.accent}; border-radius: 8px;">
     <!-- Product Header with Image -->
-    <div style="display: flex; align-items: flex-start; gap: 30px; margin-bottom: 20px;">
+    <div style="display: flex; align-items: flex-start; gap: 60px; margin-bottom: 15px;">
       <img src="${productImage}" alt="${item.productName}" 
-           style="width: 90px; height: 90px; object-fit: cover; border-radius: 10px; border: 1px solid ${BRAND_COLORS.border}; ${isProductUnavailable ? 'opacity: 0.5;' : ''}; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+           style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid ${BRAND_COLORS.border}; ${isProductUnavailable ? 'opacity: 0.5;' : ''}">
       <div style="flex: 1;">
         <h4 style="margin: 0 0 8px 0; color: ${BRAND_COLORS.textDark}; font-size: 18px; font-weight: 600; ${isProductUnavailable ? 'text-decoration: line-through; color: #999;' : ''}">
           ${item.productName}
