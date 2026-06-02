@@ -975,11 +975,11 @@ const processedColors = (item.colors || []).map(color => {
     //     </div>
     html += `
   <div style="margin-bottom: 25px; padding: 20px; background: ${BRAND_COLORS.neutral}; border-left: 4px solid ${hasUnavailableItems ? BRAND_COLORS.unavailable : BRAND_COLORS.accent}; border-radius: 8px;">
-    <!-- Product Header with Image -->
-    <div style="display: flex; align-items: flex-start; gap: 60px; margin-bottom: 15px;">
+    <!-- Product Header with Image - FIXED GAP -->
+    <div style="display: flex; align-items: flex-start; gap: 25px; margin-bottom: 15px;">
       <img src="${productImage}" alt="${item.productName}" 
            style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid ${BRAND_COLORS.border}; ${isProductUnavailable ? 'opacity: 0.5;' : ''}">
-      <div style="flex: 1;">
+      <div style="flex: 1; margin-left: 5px;">
         <h4 style="margin: 0 0 8px 0; color: ${BRAND_COLORS.textDark}; font-size: 18px; font-weight: 600; ${isProductUnavailable ? 'text-decoration: line-through; color: #999;' : ''}">
           ${item.productName}
           ${isProductUnavailable ? '<span style="margin-left: 10px; background: #dc3545; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">UNAVAILABLE</span>' : ''}
